@@ -59,6 +59,137 @@ main {
   margin: 0 auto;
 }
 
+/* --- Widget --- */
+
+.widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.widget-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.widget-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text-secondary);
+}
+
+.widget-badge.active {
+  background: #1e3a2f;
+  color: #4caf82;
+}
+
+.widget-body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.widget-loading,
+.widget-error {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.widget-error { color: #c0616a; }
+
+.widget-auth-prompt {
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.widget-clickable {
+  cursor: pointer;
+}
+
+.widget-clickable:hover {
+  border-color: var(--accent);
+}
+
+.widget-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-top: 0.4rem;
+}
+
+.heating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.heating-name {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heating-temps {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.heating-temps .current {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.heating-temps .arrow {
+  margin: 0 0.25rem;
+  color: var(--border);
+}
+
+.heating-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.heating-indicator.on { background: #e07b4a; }
+
+.dhw-state {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.dhw-state.on { color: #4caf82; }
+.dhw-state.off { color: var(--text-secondary); }
+
+/* --- Footer --- */
+
 footer {
   padding: 0.75rem 2rem;
   border-top: 1px solid var(--border);

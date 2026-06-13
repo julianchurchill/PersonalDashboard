@@ -51,6 +51,23 @@ The dev container is configured with Docker-outside-of-Docker: it mounts the hos
 
 After rebuilding the dev container you should be able to run `docker build` and `docker run` commands from the integrated terminal.
 
+### Resideo heating widget
+
+The Resideo widget uses the [Honeywell Home API](https://developer.honeywellhome.com) via OAuth2. Setup is a one-time process:
+
+1. Register a developer account at [developer.honeywellhome.com](https://developer.honeywellhome.com) and create an app with redirect URI `http://localhost:3000/auth/callback`.
+2. Add the client credentials to `.devcontainer/.env.devcontainer`:
+
+   ```env
+   RESIDEO_CLIENT_ID=your_client_id
+   RESIDEO_CLIENT_SECRET=your_client_secret
+   ```
+
+3. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in a Docker volume (`resideo-data`) so they survive container restarts.
+4. Open the dashboard at `http://localhost:3000`, click the Resideo widget ("Click to authorise"), and log in with your Resideo account to approve access.
+
+After step 4 the widget will populate automatically and refresh every 60 seconds.
+
 ### GitHub access
 
 To enable Claude (and yourself) to push to GitHub from the dev container add a `GH_TOKEN=xxx` line into .devcontainer/.env.devcontainer with `xxx` as your GitHub access token for accessing this repository. New tokens can be created here <https://github.com/settings/personal-access-tokens/new>.
