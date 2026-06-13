@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "docker:deploy": "docker build -t personal-dashboard --build-arg GIT_HASH=$(git rev-parse --short HEAD) --build-arg GIT_DATE=$(git log -1 --format=%cd --date=format:%Y-%m-%dT%H:%M%z) . && (docker rm -f dashboard 2>/dev/null || true) && docker run -d --name dashboard --restart unless-stopped -p 3000:3000 personal-dashboard",
+    "docker:deploy": "docker build -t personal-dashboard --build-arg GIT_HASH=$(git rev-parse --short HEAD) --build-arg GIT_DATE=$(git log -1 --format=%cd --date=format:%Y-%m-%dT%H:%M%z) . && (docker rm -f dashboard 2>/dev/null || true) && docker run -d --name dashboard --restart unless-stopped -p 3000:3000 --env EVOHOME_USERNAME --env EVOHOME_PASSWORD personal-dashboard",
     "docker:logs": "docker logs dashboard",
     "docker:stop": "docker stop dashboard",
     "docker:start": "docker start dashboard"

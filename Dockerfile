@@ -7,6 +7,7 @@ RUN npm ci --omit=dev
 
 COPY server.js ./
 COPY version.js ./
+COPY evohome.js ./
 COPY public/ ./public/
 
 ARG GIT_HASH=unknown
