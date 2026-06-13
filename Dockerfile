@@ -6,7 +6,13 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY server.js ./
+COPY version.js ./
 COPY public/ ./public/
+
+ARG GIT_HASH=unknown
+ARG GIT_DATE=unknown
+ENV GIT_HASH=$GIT_HASH
+ENV GIT_DATE=$GIT_DATE
 
 EXPOSE 3000
 
