@@ -46,9 +46,15 @@ function renderHeating(data) {
 
   if (data.status === 'unauthorized') {
     modeEl.textContent = '';
-    body.innerHTML = `<a class="widget-auth-link" href="/auth/resideo">Connect Resideo account →</a>`;
+    body.innerHTML = `<span class="widget-auth-prompt">Click to authorise</span>`;
+    const widget = document.getElementById('heating-widget');
+    widget.classList.add('widget-clickable');
+    widget.onclick = () => window.open('/auth/resideo', '_blank');
     return;
   }
+
+  document.getElementById('heating-widget').classList.remove('widget-clickable');
+  document.getElementById('heating-widget').onclick = null;
 
   if (data.status === 'error') {
     modeEl.textContent = '';
