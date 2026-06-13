@@ -58,3 +58,17 @@ main {
   max-width: 1400px;
   margin: 0 auto;
 }
+
+footer {
+  padding: 0.75rem 2rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  text-align: right;
+}
+
+#version-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
