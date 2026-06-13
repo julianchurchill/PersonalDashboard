@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "docker:deploy": "docker build -t personal-dashboard . && (docker rm -f dashboard 2>/dev/null || true) && docker run -d --name dashboard --restart unless-stopped -p 3000:3000 personal-dashboard",
+    "docker:logs": "docker logs dashboard",
+    "docker:stop": "docker stop dashboard",
+    "docker:start": "docker start dashboard"
   },
   "dependencies": {
     "express": "^4.19.2"

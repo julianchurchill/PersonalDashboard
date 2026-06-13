@@ -4,33 +4,22 @@
 
 The dashboard is a Node.js/Express app served on port 3000. Run it in a Docker container so it stays available whenever your PC is on, without needing a terminal open.
 
-### First-time setup
+### Deploying
 
-Build the image and start the container (run from the repo root in a Windows terminal or WSL2 shell):
-
-```bash
-docker build -t personal-dashboard .
-docker run -d --name dashboard --restart unless-stopped -p 3000:3000 personal-dashboard
-```
-
-The `--restart unless-stopped` flag means Docker will automatically restart the container when Docker Desktop starts (i.e. on PC boot), so the dashboard is always reachable at <http://localhost:3000>.
-
-### Deploying changes
-
-After editing the source files, rebuild the image and recreate the container:
+Run this from the repo root (works for both first-time setup and re-deploying changes):
 
 ```bash
-docker build -t personal-dashboard .
-docker rm -f dashboard
-docker run -d --name dashboard --restart unless-stopped -p 3000:3000 personal-dashboard
+npm run docker:deploy
 ```
+
+This builds the image, removes the old container if one exists, and starts a fresh one with `--restart unless-stopped` so Docker automatically restarts it when Docker Desktop starts (i.e. on PC boot). The dashboard is then reachable at <http://localhost:3000>.
 
 ### Useful commands
 
 ```bash
-docker logs dashboard          # view server logs
-docker stop dashboard          # stop the dashboard
-docker start dashboard         # start it again
+npm run docker:logs    # view server logs
+npm run docker:stop    # stop the dashboard
+npm run docker:start   # start it again
 ```
 
 ### Local development
