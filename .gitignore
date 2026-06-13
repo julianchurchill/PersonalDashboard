@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.claude/*
+!.claude/commands/
+!.claude/skills/
+*.local
+.DS_Store
+Thumbs.db
+.devcontainer/.env.devcontainer
