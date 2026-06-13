@@ -53,14 +53,20 @@ After rebuilding the dev container you should be able to run `docker build` and 
 
 ### Resideo heating widget
 
-The Resideo widget reads live heating zone and hot water status from the [Honeywell Total Connect Comfort Europe API](https://tccna.resideo.com). Add your Total Connect Comfort login credentials to `.devcontainer/.env.devcontainer`:
+The Resideo widget uses the [Honeywell Home API](https://developer.honeywellhome.com) via OAuth2. Setup is a one-time process:
 
-```env
-EVOHOME_USERNAME=your@email.com
-EVOHOME_PASSWORD=yourpassword
-```
+1. Register a developer account at [developer.honeywellhome.com](https://developer.honeywellhome.com) and create an app with redirect URI `http://localhost:3000/auth/callback`.
+2. Add the client credentials to `.devcontainer/.env.devcontainer`:
 
-These are passed through to the Docker container at deploy time (`npm run docker:deploy`) and are never baked into the image. The widget will show a clear error message if the credentials are missing or incorrect.
+   ```env
+   RESIDEO_CLIENT_ID=your_client_id
+   RESIDEO_CLIENT_SECRET=your_client_secret
+   ```
+
+3. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in a Docker volume (`resideo-data`) so they survive container restarts.
+4. Visit `http://localhost:3000/auth/resideo` once in a browser, log in with your Resideo account, and approve access.
+
+After step 4 the widget will populate automatically and refresh every 60 seconds. The "Connect Resideo account →" link will appear in the widget if authorisation is needed.
 
 ### GitHub access
 

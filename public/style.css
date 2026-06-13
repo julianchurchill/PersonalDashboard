@@ -115,6 +115,14 @@ main {
 
 .widget-error { color: #c0616a; }
 
+.widget-auth-link {
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.widget-auth-link:hover { text-decoration: underline; }
+
 .widget-section-label {
   font-size: 0.7rem;
   font-weight: 600;
