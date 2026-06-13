@@ -34,20 +34,41 @@ async function loadVersion() {
 
 loadVersion();
 
-function esc(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function setBodyText(el, cssClass, text) {
   const span = document.createElement('span');
   span.className = cssClass;
   span.textContent = text;
   el.replaceChildren(span);
+}
+
+function makeZoneRow(z) {
+  const heating = z.temperature != null && z.target != null && z.temperature < z.target;
+
+  const indicator = document.createElement('span');
+  indicator.className = `heating-indicator${heating ? ' on' : ''}`;
+
+  const name = document.createElement('span');
+  name.className = 'heating-name';
+  name.textContent = z.name ?? '';
+
+  const current = document.createElement('span');
+  current.className = 'current';
+  current.textContent = z.temperature != null ? `${z.temperature}°C` : '—';
+
+  const arrow = document.createElement('span');
+  arrow.className = 'arrow';
+  arrow.textContent = '→';
+
+  const targetText = document.createTextNode(z.target != null ? `${z.target}°C` : '—');
+
+  const temps = document.createElement('span');
+  temps.className = 'heating-temps';
+  temps.append(current, arrow, targetText);
+
+  const row = document.createElement('div');
+  row.className = 'heating-row';
+  row.append(indicator, name, temps);
+  return row;
 }
 
 function renderHeating(data) {
@@ -87,20 +108,7 @@ function renderHeating(data) {
     return;
   }
 
-  body.innerHTML = zones.map(z => {
-    const current = z.temperature != null ? `${esc(z.temperature)}°C` : '—';
-    const target = z.target != null ? `${esc(z.target)}°C` : '—';
-    const heating = z.temperature != null && z.target != null && z.temperature < z.target;
-    return `
-      <div class="heating-row">
-        <span class="heating-indicator ${heating ? 'on' : ''}"></span>
-        <span class="heating-name">${esc(z.name)}</span>
-        <span class="heating-temps">
-          <span class="current">${current}</span>
-          <span class="arrow">→</span>${target}
-        </span>
-      </div>`;
-  }).join('');
+  body.replaceChildren(...zones.map(makeZoneRow));
 }
 
 async function loadHeating() {
