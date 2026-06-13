@@ -56,6 +56,14 @@ npm run dev    # restarts automatically when server.js changes
 
 ## Dev Containers
 
+### Docker access inside the dev container
+
+The dev container is configured with Docker-outside-of-Docker: it mounts the host Docker socket so the `docker` CLI works inside the container. This means containers you build or run inside the dev container appear directly in Docker Desktop on the host — useful for building and deploying the dashboard without leaving VS Code.
+
+After rebuilding the dev container you should be able to run `docker build` and `docker run` commands from the integrated terminal.
+
+### GitHub access
+
 To enable Claude (and yourself) to push to GitHub from the dev container add a `GH_TOKEN=xxx` line into .devcontainer/.env.devcontainer with `xxx` as your GitHub access token for accessing this repository. New tokens can be created here <https://github.com/settings/personal-access-tokens/new>.
 
 ### Audio bell

@@ -48,7 +48,11 @@
       "version": "latest"
     },
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-    "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
+    "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+      "installDockerBuildx": true
+    }
   },
   "remoteUser": "node",
   "mounts": [
