@@ -19,3 +19,11 @@ function updateClock() {
 
 updateClock();
 setInterval(updateClock, 1000);
+
+async function loadVersion() {
+  const res = await fetch('/api/version');
+  const { version, date, hash } = await res.json();
+  document.getElementById('version-info').textContent = `v${version} · ${date} · ${hash}`;
+}
+
+loadVersion();
