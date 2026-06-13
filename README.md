@@ -51,6 +51,17 @@ The dev container is configured with Docker-outside-of-Docker: it mounts the hos
 
 After rebuilding the dev container you should be able to run `docker build` and `docker run` commands from the integrated terminal.
 
+### Resideo heating widget
+
+The Resideo widget reads live heating zone and hot water status from the [Honeywell Total Connect Comfort Europe API](https://tccna.resideo.com). Add your Total Connect Comfort login credentials to `.devcontainer/.env.devcontainer`:
+
+```env
+EVOHOME_USERNAME=your@email.com
+EVOHOME_PASSWORD=yourpassword
+```
+
+These are passed through to the Docker container at deploy time (`npm run docker:deploy`) and are never baked into the image. The widget will show a clear error message if the credentials are missing or incorrect.
+
 ### GitHub access
 
 To enable Claude (and yourself) to push to GitHub from the dev container add a `GH_TOKEN=xxx` line into .devcontainer/.env.devcontainer with `xxx` as your GitHub access token for accessing this repository. New tokens can be created here <https://github.com/settings/personal-access-tokens/new>.
