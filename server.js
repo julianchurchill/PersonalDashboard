@@ -32,12 +32,16 @@ app.get('/auth/resideo', (_req, res) => {
 
 app.get('/auth/callback', async (req, res) => {
   const { code, error } = req.query;
-  if (error || !code) return res.status(400).send(`Authorization failed: ${error ?? 'no code received'}`);
+  if (error || !code) {
+    console.error('Resideo auth callback error:', error ?? 'no code received');
+    return res.status(400).send('Authorisation failed. Check server logs for details.');
+  }
   try {
     await exchangeCode(code);
     res.redirect('/');
   } catch (err) {
-    res.status(500).send(`Token exchange failed: ${err.message}`);
+    console.error('Resideo token exchange failed:', err.message);
+    res.status(500).send('Token exchange failed. Check server logs for details.');
   }
 });
 
