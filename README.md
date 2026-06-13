@@ -1,5 +1,46 @@
 # Personal Dashboard
 
+## Running the Dashboard
+
+The dashboard is a Node.js/Express app served on port 3000. Run it in a Docker container so it stays available whenever your PC is on, without needing a terminal open.
+
+### First-time setup
+
+Build the image and start the container (run from the repo root in a Windows terminal or WSL2 shell):
+
+```bash
+docker build -t personal-dashboard .
+docker run -d --name dashboard --restart unless-stopped -p 3000:3000 personal-dashboard
+```
+
+The `--restart unless-stopped` flag means Docker will automatically restart the container when Docker Desktop starts (i.e. on PC boot), so the dashboard is always reachable at <http://localhost:3000>.
+
+### Deploying changes
+
+After editing the source files, rebuild the image and recreate the container:
+
+```bash
+docker build -t personal-dashboard .
+docker rm -f dashboard
+docker run -d --name dashboard --restart unless-stopped -p 3000:3000 personal-dashboard
+```
+
+### Useful commands
+
+```bash
+docker logs dashboard          # view server logs
+docker stop dashboard          # stop the dashboard
+docker start dashboard         # start it again
+```
+
+### Local development
+
+Use the dev container in VS Code for active development. The server can be run directly with hot-reload:
+
+```bash
+npm run dev    # restarts automatically when server.js changes
+```
+
 ## TODO
 
 - Octopus Agile energy tariff/usage, quick link to eInk monitor raspberry pi
