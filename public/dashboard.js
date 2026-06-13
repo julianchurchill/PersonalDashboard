@@ -34,63 +34,81 @@ async function loadVersion() {
 
 loadVersion();
 
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function setBodyText(el, cssClass, text) {
+  const span = document.createElement('span');
+  span.className = cssClass;
+  span.textContent = text;
+  el.replaceChildren(span);
+}
+
 function renderHeating(data) {
   const body = document.getElementById('heating-body');
   const modeEl = document.getElementById('heating-mode');
+  const widget = document.getElementById('heating-widget');
 
   if (data.status === 'unconfigured') {
     modeEl.textContent = '';
-    body.innerHTML = `<span class="widget-error">RESIDEO_CLIENT_ID / RESIDEO_CLIENT_SECRET not set.</span>`;
+    setBodyText(body, 'widget-error', 'RESIDEO_CLIENT_ID / RESIDEO_CLIENT_SECRET not set.');
     return;
   }
 
   if (data.status === 'unauthorized') {
     modeEl.textContent = '';
-    body.innerHTML = `<span class="widget-auth-prompt">Click to authorise</span>`;
-    const widget = document.getElementById('heating-widget');
+    setBodyText(body, 'widget-auth-prompt', 'Click to authorise');
     widget.classList.add('widget-clickable');
     widget.onclick = () => window.open('/auth/resideo', '_blank');
     return;
   }
 
-  document.getElementById('heating-widget').classList.remove('widget-clickable');
-  document.getElementById('heating-widget').onclick = null;
+  widget.classList.remove('widget-clickable');
+  widget.onclick = null;
 
   if (data.status === 'error') {
     modeEl.textContent = '';
-    body.innerHTML = `<span class="widget-error">${data.message}</span>`;
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
     return;
   }
 
   modeEl.textContent = data.zones?.[0]?.mode ?? '';
   modeEl.className = 'widget-badge' + (data.zones?.[0]?.mode === 'Heat' ? ' active' : '');
 
-  const rows = [];
-  for (const z of (data.zones ?? [])) {
-    const current = z.temperature != null ? `${z.temperature}°C` : '—';
-    const target = z.target != null ? `${z.target}°C` : '—';
+  const zones = data.zones ?? [];
+  if (!zones.length) {
+    setBodyText(body, 'widget-loading', 'No devices found.');
+    return;
+  }
+
+  body.innerHTML = zones.map(z => {
+    const current = z.temperature != null ? `${esc(z.temperature)}°C` : '—';
+    const target = z.target != null ? `${esc(z.target)}°C` : '—';
     const heating = z.temperature != null && z.target != null && z.temperature < z.target;
-    rows.push(`
+    return `
       <div class="heating-row">
         <span class="heating-indicator ${heating ? 'on' : ''}"></span>
-        <span class="heating-name">${z.name}</span>
+        <span class="heating-name">${esc(z.name)}</span>
         <span class="heating-temps">
           <span class="current">${current}</span>
           <span class="arrow">→</span>${target}
         </span>
-      </div>`);
-  }
-
-  body.innerHTML = rows.join('') || '<span class="widget-loading">No devices found.</span>';
+      </div>`;
+  }).join('');
 }
 
 async function loadHeating() {
   try {
     const res = await fetch('/api/heating');
     renderHeating(await res.json());
-  } catch (err) {
-    document.getElementById('heating-body').innerHTML =
-      `<span class="widget-error">Could not reach heating API.</span>`;
+  } catch {
+    setBodyText(document.getElementById('heating-body'), 'widget-error', 'Could not reach heating API.');
   }
 }
 
