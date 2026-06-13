@@ -36,12 +36,15 @@ npm run dev    # restarts automatically when server.js changes
 - Solar generation (Solis?)
 - Car charger (myenergi?)
 - Tapo bulbs and sockets
-- Residio heating and hot water controls
 - Deco for WiFi monitoring
 - CCTV
 - Google Keep notes
 - Google Calendar
 - OurGroceries shopping list?
+
+## Done
+
+- Resideo heating and hot water controls
 
 ## Dev Containers
 
