@@ -64,9 +64,9 @@ The Resideo widget uses the [Honeywell Home API](https://developer.honeywellhome
    ```
 
 3. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in a Docker volume (`resideo-data`) so they survive container restarts.
-4. Visit `http://localhost:3000/auth/resideo` once in a browser, log in with your Resideo account, and approve access.
+4. Open the dashboard at `http://localhost:3000`, click the Resideo widget ("Click to authorise"), and log in with your Resideo account to approve access.
 
-After step 4 the widget will populate automatically and refresh every 60 seconds. The "Connect Resideo account →" link will appear in the widget if authorisation is needed.
+After step 4 the widget will populate automatically and refresh every 60 seconds.
 
 ### GitHub access
 
