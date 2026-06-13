@@ -9,12 +9,14 @@ function updateClock() {
   });
 
   const dateEl = document.getElementById('date');
-  dateEl.textContent = now.toLocaleDateString('en-GB', {
+  const datePart = now.toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  dateEl.textContent = `${datePart} · ${timeZone}`;
 }
 
 updateClock();
