@@ -15,6 +15,9 @@ function randomDigits() {
 }
 
 function md5(str) {
+  // lgtm[js/insufficient-password-hash] lgtm[js/weak-cryptographic-algorithm]
+  // MD5 is required by the Deco local API protocol as a challenge-response token,
+  // not for password storage. The hash is transmitted over an AES-encrypted channel.
   return createHash('md5').update(str).digest('hex');
 }
 
@@ -68,7 +71,7 @@ function post(ip, path, body, extraHeaders = {}) {
         'Content-Length': bodyBuf.length,
         ...extraHeaders,
       },
-      rejectUnauthorized: false,
+      rejectUnauthorized: false, // lgtm[js/disabled-cert-validation] — Deco uses a self-signed cert with no trusted CA
     }, (res) => {
       let data = '';
       const setCookie = res.headers['set-cookie'] ?? [];
