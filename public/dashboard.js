@@ -518,13 +518,24 @@ function renderDeco(data) {
   totalsRow.className = 'deco-totals';
   totalsRow.append(makeDecoSpeedEl(downloadKbps, uploadKbps));
 
-  const deviceRows = topUsers.map(u => {
-    const nameEl = document.createElement('span');
-    nameEl.className = 'myenergi-label deco-device-name';
-    nameEl.textContent = u.name;
+  const slots = [...topUsers.slice(0, 5)];
+  while (slots.length < 5) slots.push(null);
+
+  const deviceRows = slots.map(u => {
     const row = document.createElement('div');
     row.className = 'myenergi-row';
-    row.append(nameEl, makeDecoSpeedEl(u.downloadKbps, u.uploadKbps));
+    if (u) {
+      const nameEl = document.createElement('span');
+      nameEl.className = 'myenergi-label deco-device-name';
+      nameEl.textContent = u.name;
+      row.append(nameEl, makeDecoSpeedEl(u.downloadKbps, u.uploadKbps));
+    } else {
+      row.style.visibility = 'hidden';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'myenergi-label';
+      nameEl.textContent = '—';
+      row.append(nameEl, makeDecoSpeedEl(0, 0));
+    }
     return row;
   });
 
