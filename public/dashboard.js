@@ -478,6 +478,19 @@ function fmtSpeed(kbps) {
   return `${Math.round(kbps)} kbps`;
 }
 
+function makeDecoSpeedEl(dlKbps, ulKbps) {
+  const dl = document.createElement('span');
+  dl.className = 'deco-dl';
+  dl.textContent = `↓ ${fmtSpeed(dlKbps)}`;
+  const ul = document.createElement('span');
+  ul.className = 'deco-ul';
+  ul.textContent = `↑ ${fmtSpeed(ulKbps)}`;
+  const wrap = document.createElement('span');
+  wrap.className = 'deco-speeds';
+  wrap.append(dl, ul);
+  return wrap;
+}
+
 function renderDeco(data) {
   const body  = document.getElementById('deco-body');
   const badge = document.getElementById('deco-badge');
@@ -496,15 +509,26 @@ function renderDeco(data) {
     return;
   }
 
-  const { connectedDevices, downloadKbps, uploadKbps } = data;
+  const { connectedDevices, downloadKbps, uploadKbps, topUsers = [] } = data;
 
   badge.textContent = `${connectedDevices} device${connectedDevices !== 1 ? 's' : ''}`;
   badge.className = 'widget-badge';
 
-  const dlRow = makeEnergyRow('Download', fmtSpeed(downloadKbps), 'deco-download');
-  const ulRow = makeEnergyRow('Upload',   fmtSpeed(uploadKbps),   'deco-upload');
+  const totalsRow = document.createElement('div');
+  totalsRow.className = 'deco-totals';
+  totalsRow.append(makeDecoSpeedEl(downloadKbps, uploadKbps));
 
-  body.replaceChildren(dlRow, ulRow);
+  const deviceRows = topUsers.map(u => {
+    const nameEl = document.createElement('span');
+    nameEl.className = 'myenergi-label deco-device-name';
+    nameEl.textContent = u.name;
+    const row = document.createElement('div');
+    row.className = 'myenergi-row';
+    row.append(nameEl, makeDecoSpeedEl(u.downloadKbps, u.uploadKbps));
+    return row;
+  });
+
+  body.replaceChildren(totalsRow, ...deviceRows);
 }
 
 async function loadDeco() {
