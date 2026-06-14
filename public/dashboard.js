@@ -22,25 +22,19 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
-function weatherEmoji(icon) {
-  if (icon <=  5) return '☀️';
-  if (icon <=  8) return '⛅';
-  if (icon === 11) return '🌫️';
-  if (icon <= 14) return '🌦️';
-  if (icon <= 17) return '⛈️';
-  if (icon === 18) return '🌧️';
-  if (icon <= 21) return '🌨️';
-  if (icon <= 23) return '❄️';
-  if (icon === 24) return '🧊';
-  if (icon <= 26) return '🌨️';
-  if (icon === 29) return '🌨️';
-  if (icon === 30) return '🌡️';
-  if (icon === 31) return '🥶';
-  if (icon === 32) return '💨';
-  if (icon <= 38) return '🌙';
-  if (icon <= 40) return '🌧️';
-  if (icon <= 42) return '⛈️';
-  return '❄️';
+function weatherEmoji(code) {
+  if (code <= 1)  return '☀️';
+  if (code === 2) return '⛅';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫️';
+  if (code <= 55) return '🌦️';
+  if (code <= 57) return '🌨️';
+  if (code <= 65) return '🌧️';
+  if (code <= 67) return '🧊';
+  if (code <= 77) return '❄️';
+  if (code <= 82) return '🌦️';
+  if (code <= 86) return '❄️';
+  return '⛈️';
 }
 
 function renderWeather(data) {
@@ -54,7 +48,7 @@ function renderWeather(data) {
 
   const mainEl = document.createElement('div');
   mainEl.id = 'weather-main';
-  mainEl.textContent = `${weatherEmoji(data.icon)} ${data.temperature}°C`;
+  mainEl.textContent = `${weatherEmoji(data.weatherCode)} ${data.temperature}°C`;
 
   const condEl = document.createElement('div');
   condEl.id = 'weather-condition';
