@@ -278,3 +278,19 @@ footer {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
 }
+
+/* --- Gas Widget --- */
+
+.gas-price {
+  font-size: 3rem;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.gas-unit {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}

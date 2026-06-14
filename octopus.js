@@ -2,6 +2,8 @@ const API_BASE = 'https://api.octopus.energy/v1';
 
 let _cachedProductCode = null;
 let _productCodeFetchedAt = 0;
+let _cachedGasProductCode = null;
+let _gasProductCodeFetchedAt = 0;
 const PRODUCT_TTL_MS = 24 * 60 * 60 * 1000;
 
 function getRegion() {
@@ -62,6 +64,64 @@ export async function getUpcomingRates() {
       validFrom: r.valid_from,
       validTo: r.valid_to,
     }));
+}
+
+export function isGasConfigured() {
+  return !!(process.env.OCTOPUS_API_KEY && process.env.OCTOPUS_ACCOUNT_NUMBER);
+}
+
+async function getGasProductCode() {
+  if (_cachedGasProductCode && Date.now() - _gasProductCodeFetchedAt < PRODUCT_TTL_MS) {
+    return _cachedGasProductCode;
+  }
+
+  const { OCTOPUS_API_KEY: apiKey, OCTOPUS_ACCOUNT_NUMBER: accountNumber } = process.env;
+  const credentials = Buffer.from(`${apiKey}:`).toString('base64');
+  const res = await fetch(`${API_BASE}/accounts/${accountNumber}/`, {
+    headers: { Authorization: `Basic ${credentials}` },
+  });
+  if (!res.ok) throw new Error(`Account fetch failed: ${res.status}`);
+  const data = await res.json();
+
+  const now = new Date();
+  const tariffCode = data.properties
+    ?.flatMap(p => p.gas_meter_points ?? [])
+    ?.flatMap(m => m.agreements ?? [])
+    ?.find(a => new Date(a.valid_from) <= now && (!a.valid_to || new Date(a.valid_to) > now))
+    ?.tariff_code;
+
+  if (!tariffCode) throw new Error('No active gas tariff found on account');
+
+  const match = /^G-1R-(.+)-[A-Z]$/.exec(tariffCode);
+  if (!match) throw new Error(`Unexpected gas tariff code format: ${tariffCode}`);
+
+  _cachedGasProductCode = match[1];
+  _gasProductCodeFetchedAt = Date.now();
+  return _cachedGasProductCode;
+}
+
+export async function getGasRate() {
+  const productCode = await getGasProductCode();
+  const region = getRegion();
+  const tariffCode = `G-1R-${productCode}-${region}`;
+
+  const url = `${API_BASE}/products/${productCode}/gas-tariffs/${tariffCode}/standard-unit-rates/?page_size=5`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Gas rates fetch failed: ${res.status} (tariff: ${tariffCode})`);
+  const data = await res.json();
+
+  const now = new Date();
+  const current = (data.results ?? []).find(r =>
+    new Date(r.valid_from) <= now && (!r.valid_to || new Date(r.valid_to) > now)
+  );
+  if (!current) throw new Error('No current gas rate found');
+
+  return {
+    rate: current.value_inc_vat,
+    validFrom: current.valid_from,
+    validTo: current.valid_to,
+  };
 }
 
 export async function getCurrentRate() {

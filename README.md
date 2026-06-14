@@ -48,7 +48,8 @@ npm run dev    # restarts automatically when server.js changes
 ## Done
 
 - Resideo heating and hot water controls
-- Octopus Agile electricity price widget (current p/kWh for the active half-hour slot)
+- Octopus Agile electricity price widget (current p/kWh, next slot price, 24-hour price graph)
+- Octopus gas price widget (current unit rate in p/kWh)
 
 ## Dev Containers
 
@@ -77,7 +78,7 @@ After step 4 the widget will populate automatically and refresh every 60 seconds
 
 ### Octopus Agile electricity price widget
 
-The Octopus widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/), which requires no authentication. It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, and refreshes every 30 minutes.
+The Octopus widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/), which requires no authentication. It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, the next slot's price, a 24-hour price graph, and refreshes every 30 minutes.
 
 The only configuration required is your **DNO region letter**, which determines which regional Agile price is shown (prices vary by area):
 
@@ -109,6 +110,19 @@ The only configuration required is your **DNO region letter**, which determines 
 | P | North of Scotland |
 
 If `OCTOPUS_REGION` is not set the widget defaults to `C` (London).
+
+### Octopus gas price widget
+
+Shows the current gas unit rate in p/kWh (inc. VAT) from your Octopus variable gas tariff. Refreshes hourly.
+
+Requires the same `OCTOPUS_REGION` used for electricity. Supply your Octopus **API key** and **account number** (both visible under **Account → API access** at octopus.energy) and the dashboard will look up your active gas tariff automatically:
+
+```env
+OCTOPUS_API_KEY=sk_live_xxxxxxxxxxxx
+OCTOPUS_ACCOUNT_NUMBER=A-12345678
+```
+
+The product code is cached for 24 hours so the account API is not called on every refresh. Then re-deploy (`npm run docker:deploy`). If the variables are not set the widget shows an unconfigured message.
 
 ### GitHub access
 

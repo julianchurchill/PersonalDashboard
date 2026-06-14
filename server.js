@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getVersionInfo } from './version.js';
 import { isConfigured, getAuthUrl, exchangeCode, getStatus } from './resideo.js';
-import { getCurrentRate, getUpcomingRates } from './octopus.js';
+import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from './octopus.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -39,6 +39,16 @@ app.get('/api/electricity-rates', async (_req, res) => {
   try {
     const rates = await getUpcomingRates();
     res.json({ status: 'ok', rates });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/gas-price', async (_req, res) => {
+  if (!isGasConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const data = await getGasRate();
+    res.json({ status: 'ok', ...data });
   } catch (err) {
     res.status(503).json({ status: 'error', message: err.message });
   }
