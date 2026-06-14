@@ -37,8 +37,37 @@ header {
   line-height: 1;
 }
 
+#header-right {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
 #clock {
   text-align: right;
+}
+
+#weather {
+  text-align: right;
+  cursor: pointer;
+  line-height: 1;
+}
+
+#weather:hover {
+  opacity: 0.75;
+}
+
+#weather-main {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+#weather-condition {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
 }
 
 #time {

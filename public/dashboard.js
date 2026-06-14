@@ -22,6 +22,54 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
+function weatherEmoji(code) {
+  if (code <= 1)  return '☀️';
+  if (code === 2) return '⛅';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫️';
+  if (code <= 55) return '🌦️';
+  if (code <= 57) return '🌨️';
+  if (code <= 65) return '🌧️';
+  if (code <= 67) return '🧊';
+  if (code <= 77) return '❄️';
+  if (code <= 82) return '🌦️';
+  if (code <= 86) return '❄️';
+  return '⛈️';
+}
+
+function renderWeather(data) {
+  const el = document.getElementById('weather');
+
+  if (data.status === 'unconfigured' || data.status === 'error') {
+    el.replaceChildren();
+    el.onclick = null;
+    return;
+  }
+
+  const mainEl = document.createElement('div');
+  mainEl.id = 'weather-main';
+  mainEl.textContent = `${weatherEmoji(data.weatherCode)} ${data.temperature}°C`;
+
+  const condEl = document.createElement('div');
+  condEl.id = 'weather-condition';
+  condEl.textContent = data.condition;
+
+  el.replaceChildren(mainEl, condEl);
+  el.onclick = () => window.open(data.url, '_blank');
+}
+
+async function loadWeather() {
+  try {
+    const res = await fetch('/api/weather');
+    renderWeather(await res.json());
+  } catch {
+    document.getElementById('weather').replaceChildren();
+  }
+}
+
+loadWeather();
+setInterval(loadWeather, 30 * 60 * 1000);
+
 async function loadVersion() {
   const res = await fetch('/api/version');
   const { version, datetime, hash } = await res.json();

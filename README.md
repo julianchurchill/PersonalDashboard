@@ -50,6 +50,7 @@ npm run dev    # restarts automatically when server.js changes
 - Resideo heating and hot water controls
 - Octopus Agile electricity price widget (current p/kWh, next slot price, 24-hour price graph)
 - Octopus gas price widget (current unit rate in p/kWh)
+- Open-Meteo current conditions in the header (temperature, condition, click to open forecast)
 
 ## Dev Containers
 
@@ -94,6 +95,18 @@ OCTOPUS_ACCOUNT_NUMBER=A-12345678
 ```
 
 The product code is cached for 24 hours so the account API is not called on every refresh. Then re-deploy (`npm run docker:deploy`). If the variables are not set the widget shows an unconfigured message.
+
+### Weather widget
+
+Shows current temperature and conditions in the header bar. Clicking opens a forecast in a new tab. Refreshes every 30 minutes.
+
+Uses [Open-Meteo](https://open-meteo.com/) — completely free, no API key or registration required. Set a location name and re-deploy:
+
+```env
+WEATHER_LOCATION=London
+```
+
+The coordinates are resolved automatically from the location name via the Open-Meteo geocoding API and cached for the lifetime of the server process. If the variable is not set the weather area is left empty.
 
 ### GitHub access
 
