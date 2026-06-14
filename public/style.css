@@ -359,6 +359,51 @@ main {
   color: #6c8ebf;
 }
 
+/* --- CCTV Widget --- */
+
+#cctv-widget {
+  grid-column: span 2;
+}
+
+#cctv-body {
+  padding: 0.75rem;
+}
+
+.cctv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cctv-camera {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: #0d0d0d;
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+
+.cctv-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cctv-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.65);
+}
+
 /* --- Footer --- */
 
 footer {
