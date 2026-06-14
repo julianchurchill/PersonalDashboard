@@ -37,10 +37,7 @@ npm run dev    # restarts automatically when server.js changes
 
 - Octopus Agile energy usage history, quick link to eInk monitor raspberry pi
 - Solar generation (Solis?)
-- Car charger (myenergi?)
 - Tapo bulbs and sockets
-- Deco for WiFi monitoring
-- CCTV
 - Google Keep notes
 - Google Calendar
 - OurGroceries shopping list?
@@ -51,6 +48,9 @@ npm run dev    # restarts automatically when server.js changes
 - Octopus Agile electricity price widget (current p/kWh, next slot price, 24-hour price graph)
 - Octopus gas price widget (current unit rate in p/kWh)
 - Open-Meteo current conditions in the header (temperature, condition, click to open forecast)
+- TP-Link Deco network widget (live speeds, top 5 users by bandwidth)
+- myenergi widget (solar generation, grid import/export, Zappi charging status)
+- CCTV widget (4-channel live snapshots from DVR via RTSP)
 
 ## Dev Containers
 
@@ -149,6 +149,26 @@ The widget shows:
 | Session                   | Energy added to the car in the current charging session  |
 
 The Zappi mode (Fast / Eco / Eco+ / Stopped) and charging status are shown in the widget badge.
+
+### CCTV widget
+
+Shows a 2×2 grid of live snapshots from 4 CCTV cameras, refreshed every 15 seconds. Frames are captured server-side from the DVR's RTSP streams using ffmpeg (included in the Docker image).
+
+**Config needed:**
+
+```env
+CCTV_IP=192.168.0.5
+CCTV_PASSWORD=your_dvr_password
+```
+
+Optional variables (shown with their defaults):
+
+```env
+CCTV_USER=admin
+CCTV_RTSP_PORT=554
+```
+
+The widget requires an RTSP-capable DVR — it does not rely on an HTTP snapshot endpoint. If either `CCTV_IP` or `CCTV_PASSWORD` is not set the widget shows an unconfigured message.
 
 ### GitHub access
 
