@@ -48,7 +48,8 @@ npm run dev    # restarts automatically when server.js changes
 ## Done
 
 - Resideo heating and hot water controls
-- Octopus Agile electricity price widget (current p/kWh for the active half-hour slot)
+- Octopus Agile electricity price widget (current p/kWh, next slot price, 24-hour price graph)
+- Octopus gas price widget (current unit rate in p/kWh)
 
 ## Dev Containers
 
@@ -77,7 +78,7 @@ After step 4 the widget will populate automatically and refresh every 60 seconds
 
 ### Octopus Agile electricity price widget
 
-The Octopus widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/), which requires no authentication. It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, and refreshes every 30 minutes.
+The Octopus widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/), which requires no authentication. It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, the next slot's price, a 24-hour price graph, and refreshes every 30 minutes.
 
 The only configuration required is your **DNO region letter**, which determines which regional Agile price is shown (prices vary by area):
 
@@ -109,6 +110,35 @@ The only configuration required is your **DNO region letter**, which determines 
 | P | North of Scotland |
 
 If `OCTOPUS_REGION` is not set the widget defaults to `C` (London).
+
+### Octopus gas price widget
+
+Shows the current gas unit rate in p/kWh (inc. VAT) from your Octopus variable gas tariff. Refreshes hourly.
+
+Requires your **gas product code** and the same `OCTOPUS_REGION` used for electricity.
+
+#### Finding your gas product code
+
+The easiest way is via the Octopus API. Your **account number** (e.g. `A-12345678`) and **API key** are both visible in your Octopus online account under **Account → API access**.
+
+```bash
+curl -u "{your_api_key}:" \
+  "https://api.octopus.energy/v1/accounts/{your_account_number}/"
+```
+
+Find your gas meter's `agreements[].tariff_code` in the response — it looks like `G-1R-VAR-22-11-01-C`. Strip the leading `G-1R-` and the trailing `-{region_letter}` to get the product code, e.g. **`VAR-22-11-01`**.
+
+The tariff name is also shown on any recent Octopus bill or on the tariff page in your online account.
+
+#### Configuration
+
+Add the product code to `.devcontainer/.env.devcontainer`:
+
+```env
+OCTOPUS_GAS_PRODUCT_CODE=VAR-22-11-01
+```
+
+Then re-deploy (`npm run docker:deploy`). If the variable is not set the widget shows an unconfigured message.
 
 ### GitHub access
 
