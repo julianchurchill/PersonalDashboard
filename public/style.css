@@ -216,6 +216,25 @@ main {
   margin-top: 0.15rem;
 }
 
+.electricity-graph {
+  padding: 0.25rem 0 0.6rem;
+}
+
+.electricity-graph svg {
+  display: block;
+  width: 100%;
+  height: 52px;
+}
+
+.electricity-graph-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0.5rem 0;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .electricity-price-negative    { color: #6c8ebf; }
 .electricity-price-cheap       { color: #4caf82; }
 .electricity-price-normal      { color: var(--text-primary); }

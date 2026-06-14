@@ -37,6 +37,33 @@ async function getAgileProductCode() {
   throw new Error('No active Agile product found');
 }
 
+export async function getUpcomingRates() {
+  const productCode = await getAgileProductCode();
+  const region = getRegion();
+  const tariffCode = `E-1R-${productCode}-${region}`;
+
+  const now = new Date();
+  const slotStart = new Date(now);
+  slotStart.setMinutes(Math.floor(slotStart.getMinutes() / 30) * 30, 0, 0);
+  const periodEnd = new Date(slotStart.getTime() + 24 * 60 * 60 * 1000);
+
+  const url = `${API_BASE}/products/${productCode}/electricity-tariffs/${tariffCode}/standard-unit-rates/` +
+    `?period_from=${slotStart.toISOString()}&period_to=${periodEnd.toISOString()}&page_size=48`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Rates fetch failed: ${res.status} (tariff: ${tariffCode})`);
+  const data = await res.json();
+
+  return (data.results ?? [])
+    .sort((a, b) => new Date(a.valid_from) - new Date(b.valid_from))
+    .slice(0, 48)
+    .map(r => ({
+      rate: r.value_inc_vat,
+      validFrom: r.valid_from,
+      validTo: r.valid_to,
+    }));
+}
+
 export async function getCurrentRate() {
   const productCode = await getAgileProductCode();
   const region = getRegion();
