@@ -175,5 +175,15 @@ async function loadElectricityPrice() {
   }
 }
 
+function scheduleNextElectricityRefresh() {
+  const now = new Date();
+  const msIntoSlot = (now.getMinutes() % 30) * 60 * 1000 + now.getSeconds() * 1000 + now.getMilliseconds();
+  const msUntilNextSlot = 30 * 60 * 1000 - msIntoSlot;
+  setTimeout(() => {
+    loadElectricityPrice();
+    scheduleNextElectricityRefresh();
+  }, msUntilNextSlot);
+}
+
 loadElectricityPrice();
-setInterval(loadElectricityPrice, 30 * 60 * 1000);
+scheduleNextElectricityRefresh();
