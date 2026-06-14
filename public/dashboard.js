@@ -150,7 +150,7 @@ function renderElectricityPrice(data) {
     return;
   }
 
-  const { rate, validTo, nextRate, nextValidTo } = data;
+  const { rate, validTo, nextRate, nextValidTo, standingCharge } = data;
   const { level, label } = getPriceLevel(rate);
 
   badge.textContent = label;
@@ -162,7 +162,9 @@ function renderElectricityPrice(data) {
 
   const unitEl = document.createElement('div');
   unitEl.className = 'electricity-unit';
-  unitEl.textContent = 'per kWh inc. VAT';
+  unitEl.textContent = standingCharge != null
+    ? `per kWh · ${standingCharge.toFixed(2)}p/day standing charge`
+    : 'per kWh inc. VAT';
 
   const untilEl = document.createElement('div');
   untilEl.className = 'electricity-until';
@@ -220,7 +222,9 @@ function renderGasPrice(data) {
 
   const unitEl = document.createElement('div');
   unitEl.className = 'gas-unit';
-  unitEl.textContent = 'per kWh inc. VAT';
+  unitEl.textContent = data.standingCharge != null
+    ? `per kWh · ${data.standingCharge.toFixed(2)}p/day standing charge`
+    : 'per kWh inc. VAT';
 
   body.replaceChildren(priceEl, unitEl);
 }
