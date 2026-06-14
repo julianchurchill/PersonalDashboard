@@ -122,3 +122,58 @@ async function loadHeating() {
 
 loadHeating();
 setInterval(loadHeating, 60_000);
+
+function getPriceLevel(pence) {
+  if (pence < 0)   return { level: 'negative',      label: 'Plunge' };
+  if (pence < 10)  return { level: 'cheap',         label: 'Cheap' };
+  if (pence < 25)  return { level: 'normal',        label: 'Normal' };
+  if (pence < 35)  return { level: 'expensive',     label: 'Pricey' };
+  return           { level: 'very-expensive',       label: 'Costly' };
+}
+
+function renderElectricityPrice(data) {
+  const body = document.getElementById('electricity-body');
+  const badge = document.getElementById('electricity-badge');
+
+  if (data.status === 'error') {
+    badge.textContent = 'Agile';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const { rate, validTo } = data;
+  const { level, label } = getPriceLevel(rate);
+
+  badge.textContent = label;
+  badge.className = `widget-badge electricity-badge-${level}`;
+
+  const priceEl = document.createElement('div');
+  priceEl.className = `electricity-price electricity-price-${level}`;
+  priceEl.textContent = `${rate.toFixed(2)}p`;
+
+  const unitEl = document.createElement('div');
+  unitEl.className = 'electricity-unit';
+  unitEl.textContent = 'per kWh inc. VAT';
+
+  const untilEl = document.createElement('div');
+  untilEl.className = 'electricity-until';
+  if (validTo) {
+    const until = new Date(validTo);
+    untilEl.textContent = `Until ${until.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  body.replaceChildren(priceEl, unitEl, untilEl);
+}
+
+async function loadElectricityPrice() {
+  try {
+    const res = await fetch('/api/electricity-price');
+    renderElectricityPrice(await res.json());
+  } catch {
+    setBodyText(document.getElementById('electricity-body'), 'widget-error', 'Could not reach electricity price API.');
+  }
+}
+
+loadElectricityPrice();
+setInterval(loadElectricityPrice, 30 * 60 * 1000);

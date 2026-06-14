@@ -188,6 +188,40 @@ main {
 .dhw-state.on { color: #4caf82; }
 .dhw-state.off { color: var(--text-secondary); }
 
+/* --- Electricity Widget --- */
+
+.electricity-price {
+  font-size: 3rem;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.electricity-unit {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+.electricity-until {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.6rem;
+}
+
+.electricity-price-negative    { color: #6c8ebf; }
+.electricity-price-cheap       { color: #4caf82; }
+.electricity-price-normal      { color: var(--text-primary); }
+.electricity-price-expensive   { color: #e0a040; }
+.electricity-price-very-expensive { color: #c0616a; }
+
+.widget-badge.electricity-badge-negative   { background: #1a2a3f; color: #6c8ebf; }
+.widget-badge.electricity-badge-cheap      { background: #1e3a2f; color: #4caf82; }
+.widget-badge.electricity-badge-normal     { background: var(--border); color: var(--text-secondary); }
+.widget-badge.electricity-badge-expensive  { background: #3a2a1a; color: #e0a040; }
+.widget-badge.electricity-badge-very-expensive { background: #3a1a1a; color: #c0616a; }
+
 /* --- Footer --- */
 
 footer {
