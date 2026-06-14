@@ -50,6 +50,7 @@ npm run dev    # restarts automatically when server.js changes
 - Resideo heating and hot water controls
 - Octopus Agile electricity price widget (current p/kWh, next slot price, 24-hour price graph)
 - Octopus gas price widget (current unit rate in p/kWh)
+- AccuWeather current conditions in the header (temperature, condition, click to open forecast)
 
 ## Dev Containers
 
@@ -94,6 +95,19 @@ OCTOPUS_ACCOUNT_NUMBER=A-12345678
 ```
 
 The product code is cached for 24 hours so the account API is not called on every refresh. Then re-deploy (`npm run docker:deploy`). If the variables are not set the widget shows an unconfigured message.
+
+### AccuWeather widget
+
+Shows current temperature and conditions in the header bar. Clicking opens AccuWeather for detailed forecasts. Refreshes every 30 minutes.
+
+Requires a free AccuWeather API key (sign up at [developer.accuweather.com](https://developer.accuweather.com) — the free tier allows 50 calls/day which is sufficient) and a location name:
+
+```env
+ACCUWEATHER_API_KEY=your_api_key
+ACCUWEATHER_LOCATION=London, UK
+```
+
+The location key is looked up automatically from the location name and cached for the lifetime of the server process. Then re-deploy (`npm run docker:deploy`). If the variables are not set the weather area is left empty.
 
 ### GitHub access
 

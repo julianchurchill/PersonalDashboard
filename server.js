@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import { getVersionInfo } from './version.js';
 import { isConfigured, getAuthUrl, exchangeCode, getStatus } from './resideo.js';
 import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from './octopus.js';
+import { getCurrentWeather, isWeatherConfigured } from './weather.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -20,6 +21,16 @@ app.get('/api/heating', async (_req, res) => {
   try {
     const data = await getStatus();
     if (!data) return res.json({ status: 'unauthorized' });
+    res.json({ status: 'ok', ...data });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/weather', async (_req, res) => {
+  if (!isWeatherConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const data = await getCurrentWeather();
     res.json({ status: 'ok', ...data });
   } catch (err) {
     res.status(503).json({ status: 'error', message: err.message });

@@ -22,6 +22,60 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
+function weatherEmoji(icon) {
+  if (icon <=  5) return '☀️';
+  if (icon <=  8) return '⛅';
+  if (icon === 11) return '🌫️';
+  if (icon <= 14) return '🌦️';
+  if (icon <= 17) return '⛈️';
+  if (icon === 18) return '🌧️';
+  if (icon <= 21) return '🌨️';
+  if (icon <= 23) return '❄️';
+  if (icon === 24) return '🧊';
+  if (icon <= 26) return '🌨️';
+  if (icon === 29) return '🌨️';
+  if (icon === 30) return '🌡️';
+  if (icon === 31) return '🥶';
+  if (icon === 32) return '💨';
+  if (icon <= 38) return '🌙';
+  if (icon <= 40) return '🌧️';
+  if (icon <= 42) return '⛈️';
+  return '❄️';
+}
+
+function renderWeather(data) {
+  const el = document.getElementById('weather');
+
+  if (data.status === 'unconfigured' || data.status === 'error') {
+    el.replaceChildren();
+    el.onclick = null;
+    return;
+  }
+
+  const mainEl = document.createElement('div');
+  mainEl.id = 'weather-main';
+  mainEl.textContent = `${weatherEmoji(data.icon)} ${data.temperature}°C`;
+
+  const condEl = document.createElement('div');
+  condEl.id = 'weather-condition';
+  condEl.textContent = data.condition;
+
+  el.replaceChildren(mainEl, condEl);
+  el.onclick = () => window.open(data.url, '_blank');
+}
+
+async function loadWeather() {
+  try {
+    const res = await fetch('/api/weather');
+    renderWeather(await res.json());
+  } catch {
+    document.getElementById('weather').replaceChildren();
+  }
+}
+
+loadWeather();
+setInterval(loadWeather, 30 * 60 * 1000);
+
 async function loadVersion() {
   const res = await fetch('/api/version');
   const { version, datetime, hash } = await res.json();
