@@ -210,6 +210,12 @@ main {
   margin-top: 0.6rem;
 }
 
+.electricity-next {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
 .electricity-price-negative    { color: #6c8ebf; }
 .electricity-price-cheap       { color: #4caf82; }
 .electricity-price-normal      { color: var(--text-primary); }

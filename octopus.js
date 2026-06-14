@@ -45,21 +45,31 @@ export async function getCurrentRate() {
   const now = new Date();
   const slotStart = new Date(now);
   slotStart.setMinutes(Math.floor(slotStart.getMinutes() / 30) * 30, 0, 0);
-  const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+  const twoSlotsEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
   const url = `${API_BASE}/products/${productCode}/electricity-tariffs/${tariffCode}/standard-unit-rates/` +
-    `?period_from=${slotStart.toISOString()}&period_to=${slotEnd.toISOString()}`;
+    `?period_from=${slotStart.toISOString()}&period_to=${twoSlotsEnd.toISOString()}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Rates fetch failed: ${res.status} (tariff: ${tariffCode})`);
   const data = await res.json();
 
-  const results = data.results ?? [];
+  const results = (data.results ?? []).sort(
+    (a, b) => new Date(a.valid_from) - new Date(b.valid_from)
+  );
   if (!results.length) throw new Error('No rate available for current period');
 
+  const current = results[0];
+  const next = results[1] ?? null;
+
   return {
-    rate: results[0].value_inc_vat,
-    validFrom: results[0].valid_from,
-    validTo: results[0].valid_to,
+    rate: current.value_inc_vat,
+    validFrom: current.valid_from,
+    validTo: current.valid_to,
+    ...(next ? {
+      nextRate: next.value_inc_vat,
+      nextValidFrom: next.valid_from,
+      nextValidTo: next.valid_to,
+    } : {}),
   };
 }

@@ -142,7 +142,7 @@ function renderElectricityPrice(data) {
     return;
   }
 
-  const { rate, validTo } = data;
+  const { rate, validTo, nextRate, nextValidTo } = data;
   const { level, label } = getPriceLevel(rate);
 
   badge.textContent = label;
@@ -163,7 +163,21 @@ function renderElectricityPrice(data) {
     untilEl.textContent = `Until ${until.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
-  body.replaceChildren(priceEl, unitEl, untilEl);
+  const nextEl = document.createElement('div');
+  nextEl.className = 'electricity-next';
+  if (nextRate != null) {
+    const { level: nextLevel } = getPriceLevel(nextRate);
+    const nextSpan = document.createElement('span');
+    nextSpan.className = `electricity-price-${nextLevel}`;
+    nextSpan.textContent = `${nextRate.toFixed(2)}p`;
+    nextEl.append('Next ', nextSpan);
+    if (nextValidTo) {
+      const until = new Date(nextValidTo);
+      nextEl.append(` until ${until.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
+    }
+  }
+
+  body.replaceChildren(priceEl, unitEl, untilEl, nextEl);
 }
 
 async function loadElectricityPrice() {
