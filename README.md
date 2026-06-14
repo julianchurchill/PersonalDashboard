@@ -114,12 +114,14 @@ Shows live power data from your myenergi hub — solar generation, grid import/e
 
 You will need:
 
-- Your **hub serial number** — the 10-digit number printed on the hub (also visible in the myenergi app under *Account → myenergi Hub*)
-- Your **API password** — set in the myenergi app under *Account → Advanced → API password* (separate from your account password)
+- Your **hub serial number** — printed on the hub, also visible on the Products page at [myaccount.myenergi.com](https://myaccount.myenergi.com)
+- An **API key** — generated from the same portal: Products page → Gateway Device → *Advanced* → *Generate new API key*. Copy it immediately; it is only shown once (you can always generate a new one if lost)
+
+> **Important:** the API key is only available in the myaccount that was used to **register** the devices. If you are logged in via a shared account the *Advanced* button may not appear — log out and back in with the original registration email.
 
 ```env
 MYENERGI_SERIAL=1234567890
-MYENERGI_PASSWORD=your_api_password
+MYENERGI_API_KEY=your_generated_api_key
 ```
 
 The widget shows:

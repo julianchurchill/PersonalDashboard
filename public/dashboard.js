@@ -415,7 +415,7 @@ function renderMyenergi(data) {
   if (data.status === 'unconfigured') {
     badge.textContent = '';
     badge.className = 'widget-badge';
-    setBodyText(body, 'widget-error', 'MYENERGI_SERIAL / MYENERGI_PASSWORD not set.');
+    setBodyText(body, 'widget-error', 'MYENERGI_SERIAL / MYENERGI_API_KEY not set.');
     return;
   }
 

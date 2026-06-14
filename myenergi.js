@@ -5,7 +5,7 @@ const DIRECTOR = 'https://director.myenergi.net';
 let _cachedServer = null;
 
 export function isMyenergiConfigured() {
-  return !!(process.env.MYENERGI_SERIAL && process.env.MYENERGI_PASSWORD);
+  return !!(process.env.MYENERGI_SERIAL && process.env.MYENERGI_API_KEY);
 }
 
 function md5(str) {
@@ -51,7 +51,7 @@ async function getServer() {
 
 async function apiGet(path) {
   const serial   = process.env.MYENERGI_SERIAL;
-  const password = process.env.MYENERGI_PASSWORD;
+  const password = process.env.MYENERGI_API_KEY;
 
   const server = await getServer();
   const url    = `${server}${path}`;
