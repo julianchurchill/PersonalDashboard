@@ -217,7 +217,23 @@ main {
 }
 
 .electricity-graph {
+  position: relative;
   padding: 0.25rem 0 0.6rem;
+}
+
+.electricity-graph-tooltip {
+  position: absolute;
+  top: 0.35rem;
+  transform: translateX(-50%);
+  background: var(--border);
+  color: var(--text-primary);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
 }
 
 .electricity-graph svg {

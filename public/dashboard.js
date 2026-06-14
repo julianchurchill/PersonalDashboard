@@ -222,6 +222,10 @@ function renderElectricityGraph(data) {
   svg.setAttribute('viewBox', `0 0 ${W} ${BAR_H}`);
   svg.setAttribute('preserveAspectRatio', 'none');
 
+  const tooltip = document.createElement('div');
+  tooltip.className = 'electricity-graph-tooltip';
+  tooltip.hidden = true;
+
   rates.forEach((slot, i) => {
     const h = Math.max(1, (Math.max(0, slot.rate) / scale) * BAR_H);
     const { level } = getPriceLevel(slot.rate);
@@ -231,6 +235,18 @@ function renderElectricityGraph(data) {
     rect.setAttribute('width', slotW - 1);
     rect.setAttribute('height', h);
     rect.setAttribute('fill', PRICE_LEVEL_COLORS[level]);
+
+    rect.addEventListener('mouseenter', () => {
+      const br = rect.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      const from = new Date(slot.validFrom).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const to   = new Date(slot.validTo  ).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      tooltip.textContent = `${slot.rate.toFixed(2)}p · ${from}–${to}`;
+      tooltip.style.left = `${br.left - cr.left + br.width / 2}px`;
+      tooltip.hidden = false;
+    });
+    rect.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+
     svg.appendChild(rect);
   });
 
@@ -252,7 +268,7 @@ function renderElectricityGraph(data) {
     labelsDiv.appendChild(span);
   }
 
-  container.replaceChildren(svg, labelsDiv);
+  container.replaceChildren(svg, labelsDiv, tooltip);
 }
 
 async function loadElectricityGraph() {
