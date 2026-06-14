@@ -2,7 +2,8 @@
 
 ## Running the Dashboard
 
-The dashboard is a Node.js/Express app served on port 3000. Run it in a Docker container so it stays available whenever your PC is on, without needing a terminal open.
+The dashboard is a Node.js/Express app served on port 3000. Run it in a Docker container so it stays
+available whenever your PC is on, without needing a terminal open.
 
 ### Deploying
 
@@ -12,7 +13,9 @@ Run this from the repo root (works for both first-time setup and re-deploying ch
 npm run docker:deploy
 ```
 
-This builds the image, removes the old container if one exists, and starts a fresh one with `--restart unless-stopped` so Docker automatically restarts it when Docker Desktop starts (i.e. on PC boot). The dashboard is then reachable at <http://localhost:3000>.
+This builds the image, removes the old container if one exists, and starts a fresh one with
+`--restart unless-stopped` so Docker automatically restarts it when Docker Desktop starts
+(i.e. on PC boot). The dashboard is then reachable at <http://localhost:3000>.
 
 ### Useful commands
 
@@ -87,10 +90,10 @@ The only configuration required is your **DNO region letter**, which determines 
 
 3. Re-deploy (`npm run docker:deploy`) to pick up the new variable.
 
-**DNO region codes**
+#### DNO region codes
 
 | Letter | Area |
-|--------|------|
+| ------ | ---- |
 | A | Eastern England |
 | B | East Midlands (Nottingham) |
 | C | London |
