@@ -5,11 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY server.js ./
-COPY version.js ./
-COPY resideo.js ./
-COPY octopus.js ./
-COPY tokenStore.js ./
+COPY *.js ./
 COPY public/ ./public/
 
 ARG GIT_HASH=unknown
