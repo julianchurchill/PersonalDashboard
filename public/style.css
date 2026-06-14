@@ -24,13 +24,13 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.75rem 2rem;
+  padding: 0.9rem 2rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
 #dashboard-title {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 300;
   letter-spacing: 0.02em;
   color: var(--text-primary);
@@ -58,7 +58,7 @@ header {
 }
 
 #weather-main {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 300;
   color: var(--text-primary);
 }
@@ -71,7 +71,7 @@ header {
 }
 
 #time {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 300;
   letter-spacing: 0.05em;
   font-variant-numeric: tabular-nums;
@@ -329,8 +329,30 @@ main {
 .myenergi-charging { color: #6c8ebf; }
 .myenergi-session  { color: var(--text-secondary); font-size: 0.85rem; }
 
-.deco-download { color: #4caf82; }
-.deco-upload   { color: #6c8ebf; }
+.deco-totals {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.15rem 0;
+}
+
+.deco-speeds {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.deco-dl { color: #4caf82; }
+.deco-ul { color: #6c8ebf; }
+
+.deco-device-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .widget-badge.myenergi-badge-charging {
   background: #1a2a3f;

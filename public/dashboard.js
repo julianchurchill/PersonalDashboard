@@ -478,6 +478,19 @@ function fmtSpeed(kbps) {
   return `${Math.round(kbps)} kbps`;
 }
 
+function makeDecoSpeedEl(dlKbps, ulKbps) {
+  const dl = document.createElement('span');
+  dl.className = 'deco-dl';
+  dl.textContent = `↓ ${fmtSpeed(dlKbps)}`;
+  const ul = document.createElement('span');
+  ul.className = 'deco-ul';
+  ul.textContent = `↑ ${fmtSpeed(ulKbps)}`;
+  const wrap = document.createElement('span');
+  wrap.className = 'deco-speeds';
+  wrap.append(dl, ul);
+  return wrap;
+}
+
 function renderDeco(data) {
   const body  = document.getElementById('deco-body');
   const badge = document.getElementById('deco-badge');
@@ -496,15 +509,37 @@ function renderDeco(data) {
     return;
   }
 
-  const { connectedDevices, downloadKbps, uploadKbps } = data;
+  const { connectedDevices, downloadKbps, uploadKbps, topUsers = [] } = data;
 
   badge.textContent = `${connectedDevices} device${connectedDevices !== 1 ? 's' : ''}`;
   badge.className = 'widget-badge';
 
-  const dlRow = makeEnergyRow('Download', fmtSpeed(downloadKbps), 'deco-download');
-  const ulRow = makeEnergyRow('Upload',   fmtSpeed(uploadKbps),   'deco-upload');
+  const totalsRow = document.createElement('div');
+  totalsRow.className = 'deco-totals';
+  totalsRow.append(makeDecoSpeedEl(downloadKbps, uploadKbps));
 
-  body.replaceChildren(dlRow, ulRow);
+  const slots = [...topUsers.slice(0, 5)];
+  while (slots.length < 5) slots.push(null);
+
+  const deviceRows = slots.map(u => {
+    const row = document.createElement('div');
+    row.className = 'myenergi-row';
+    if (u) {
+      const nameEl = document.createElement('span');
+      nameEl.className = 'myenergi-label deco-device-name';
+      nameEl.textContent = u.name;
+      row.append(nameEl, makeDecoSpeedEl(u.downloadKbps, u.uploadKbps));
+    } else {
+      row.style.visibility = 'hidden';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'myenergi-label';
+      nameEl.textContent = '—';
+      row.append(nameEl, makeDecoSpeedEl(0, 0));
+    }
+    return row;
+  });
+
+  body.replaceChildren(totalsRow, ...deviceRows);
 }
 
 async function loadDeco() {

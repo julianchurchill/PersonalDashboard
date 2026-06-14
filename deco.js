@@ -156,6 +156,16 @@ async function apiPost(urlPath, payload) {
   return JSON.parse(aesDecrypt(res.json.data, session.aesKey, session.aesIv));
 }
 
+function decodeName(raw) {
+  if (!raw) return raw;
+  try {
+    const decoded = Buffer.from(raw, 'base64').toString('utf8');
+    return /^[\x20-\x7E-￿]+$/.test(decoded) ? decoded : raw;
+  } catch {
+    return raw;
+  }
+}
+
 export async function getDecoStatus() {
   const data = await apiPost('/admin/client?form=client_list', {
     operation: 'read',
@@ -166,6 +176,11 @@ export async function getDecoStatus() {
   const online     = clients.filter(c => c.online !== false);
   const downloadKbps = online.reduce((s, c) => s + (c.down_speed ?? 0), 0);
   const uploadKbps   = online.reduce((s, c) => s + (c.up_speed ?? 0), 0);
+  const topUsers = [...online]
+    .filter(c => (c.down_speed ?? 0) + (c.up_speed ?? 0) > 0)
+    .sort((a, b) => ((b.down_speed ?? 0) + (b.up_speed ?? 0)) - ((a.down_speed ?? 0) + (a.up_speed ?? 0)))
+    .slice(0, 5)
+    .map(c => ({ name: decodeName(c.name ?? c.mac ?? 'Unknown'), downloadKbps: c.down_speed ?? 0, uploadKbps: c.up_speed ?? 0 }));
 
-  return { connectedDevices: online.length, downloadKbps, uploadKbps };
+  return { connectedDevices: online.length, downloadKbps, uploadKbps, topUsers };
 }
