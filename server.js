@@ -6,6 +6,7 @@ import { isConfigured, getAuthUrl, exchangeCode, getStatus } from './resideo.js'
 import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from './octopus.js';
 import { getCurrentWeather, isWeatherConfigured } from './weather.js';
 import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
+import { getDecoStatus, isDecoConfigured, invalidateDecoSession } from './deco.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -72,6 +73,17 @@ app.get('/api/myenergi', async (_req, res) => {
     const data = await getMyenergiStatus();
     res.json({ status: 'ok', ...data });
   } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/deco', async (_req, res) => {
+  if (!isDecoConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const data = await getDecoStatus();
+    res.json({ status: 'ok', ...data });
+  } catch (err) {
+    invalidateDecoSession();
     res.status(503).json({ status: 'error', message: err.message });
   }
 });

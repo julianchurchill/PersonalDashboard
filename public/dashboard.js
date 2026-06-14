@@ -471,3 +471,52 @@ async function loadMyenergi() {
 
 loadMyenergi();
 setInterval(loadMyenergi, 30_000);
+
+function fmtSpeed(raw) {
+  if (raw == null || raw === 0) return '0 kB/s';
+  // Units TBD once we see real data — display raw value until confirmed
+  const kb = raw / 8;
+  if (kb >= 1000) return `${(kb / 1000).toFixed(1)} MB/s`;
+  return `${kb.toFixed(1)} kB/s`;
+}
+
+function renderDeco(data) {
+  const body  = document.getElementById('deco-body');
+  const badge = document.getElementById('deco-badge');
+
+  if (data.status === 'unconfigured') {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', 'DECO_IP / DECO_PASSWORD not set.');
+    return;
+  }
+
+  if (data.status === 'error') {
+    badge.textContent = 'Error';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const { connectedDevices, downloadBps, uploadBps } = data;
+
+  badge.textContent = `${connectedDevices} device${connectedDevices !== 1 ? 's' : ''}`;
+  badge.className = 'widget-badge';
+
+  const dlRow = makeEnergyRow('Download', fmtSpeed(downloadBps), 'deco-download');
+  const ulRow = makeEnergyRow('Upload',   fmtSpeed(uploadBps),   'deco-upload');
+
+  body.replaceChildren(dlRow, ulRow);
+}
+
+async function loadDeco() {
+  try {
+    const res = await fetch('/api/deco');
+    renderDeco(await res.json());
+  } catch {
+    setBodyText(document.getElementById('deco-body'), 'widget-error', 'Could not reach Deco API.');
+  }
+}
+
+loadDeco();
+setInterval(loadDeco, 10_000);

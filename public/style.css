@@ -329,6 +329,9 @@ main {
 .myenergi-charging { color: #6c8ebf; }
 .myenergi-session  { color: var(--text-secondary); font-size: 0.85rem; }
 
+.deco-download { color: #4caf82; }
+.deco-upload   { color: #6c8ebf; }
+
 .widget-badge.myenergi-badge-charging {
   background: #1a2a3f;
   color: #6c8ebf;
