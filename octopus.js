@@ -67,13 +67,10 @@ export async function getUpcomingRates() {
 }
 
 export function isGasConfigured() {
-  return !!(process.env.OCTOPUS_GAS_PRODUCT_CODE ||
-    (process.env.OCTOPUS_API_KEY && process.env.OCTOPUS_ACCOUNT_NUMBER));
+  return !!(process.env.OCTOPUS_API_KEY && process.env.OCTOPUS_ACCOUNT_NUMBER);
 }
 
 async function getGasProductCode() {
-  if (process.env.OCTOPUS_GAS_PRODUCT_CODE) return process.env.OCTOPUS_GAS_PRODUCT_CODE;
-
   if (_cachedGasProductCode && Date.now() - _gasProductCodeFetchedAt < PRODUCT_TTL_MS) {
     return _cachedGasProductCode;
   }
