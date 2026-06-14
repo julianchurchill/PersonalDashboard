@@ -123,6 +123,14 @@ async function loadHeating() {
 loadHeating();
 setInterval(loadHeating, 60_000);
 
+const PRICE_LEVEL_COLORS = {
+  'negative':       '#6c8ebf',
+  'cheap':          '#4caf82',
+  'normal':         '#e8eaf0',
+  'expensive':      '#e0a040',
+  'very-expensive': '#c0616a',
+};
+
 function getPriceLevel(pence) {
   if (pence < 0)   return { level: 'negative',      label: 'Plunge' };
   if (pence < 10)  return { level: 'cheap',         label: 'Cheap' };
@@ -142,7 +150,7 @@ function renderElectricityPrice(data) {
     return;
   }
 
-  const { rate, validTo } = data;
+  const { rate, validTo, nextRate, nextValidTo } = data;
   const { level, label } = getPriceLevel(rate);
 
   badge.textContent = label;
@@ -163,7 +171,21 @@ function renderElectricityPrice(data) {
     untilEl.textContent = `Until ${until.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
-  body.replaceChildren(priceEl, unitEl, untilEl);
+  const nextEl = document.createElement('div');
+  nextEl.className = 'electricity-next';
+  if (nextRate != null) {
+    const { level: nextLevel } = getPriceLevel(nextRate);
+    const nextSpan = document.createElement('span');
+    nextSpan.className = `electricity-price-${nextLevel}`;
+    nextSpan.textContent = `${nextRate.toFixed(2)}p`;
+    nextEl.append('Next ', nextSpan);
+    if (nextValidTo) {
+      const until = new Date(nextValidTo);
+      nextEl.append(` until ${until.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
+    }
+  }
+
+  body.replaceChildren(priceEl, unitEl, untilEl, nextEl);
 }
 
 async function loadElectricityPrice() {
@@ -175,15 +197,102 @@ async function loadElectricityPrice() {
   }
 }
 
+function renderElectricityGraph(data) {
+  const container = document.getElementById('electricity-graph');
+
+  if (data.status === 'error' || !data.rates?.length) {
+    container.replaceChildren();
+    return;
+  }
+
+  const rates = data.rates;
+  const NS = 'http://www.w3.org/2000/svg';
+  const SLOTS = 48, W = 480, BAR_H = 52;
+  const slotW = W / SLOTS;
+
+  const maxRate = rates.reduce((m, r) => Math.max(m, r.rate), 0);
+  const scale = Math.max(20, maxRate);
+
+  const firstSlot = new Date(rates[0].validFrom);
+  const now = new Date();
+  const nowFrac = Math.min(1, Math.max(0, (now - firstSlot) / (30 * 60 * 1000)));
+  const nowX = nowFrac * slotW;
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${BAR_H}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  const tooltip = document.createElement('div');
+  tooltip.className = 'electricity-graph-tooltip';
+  tooltip.hidden = true;
+
+  rates.forEach((slot, i) => {
+    const h = Math.max(1, (Math.max(0, slot.rate) / scale) * BAR_H);
+    const { level } = getPriceLevel(slot.rate);
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', i * slotW);
+    rect.setAttribute('y', BAR_H - h);
+    rect.setAttribute('width', slotW - 1);
+    rect.setAttribute('height', h);
+    rect.setAttribute('fill', PRICE_LEVEL_COLORS[level]);
+
+    rect.addEventListener('mouseenter', () => {
+      const br = rect.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      const from = new Date(slot.validFrom).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const to   = new Date(slot.validTo  ).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      tooltip.textContent = `${slot.rate.toFixed(2)}p · ${from}–${to}`;
+      tooltip.hidden = false;
+      const barCenterX = br.left - cr.left + br.width / 2;
+      const half = tooltip.offsetWidth / 2;
+      tooltip.style.left = `${Math.max(half, Math.min(barCenterX, cr.width - half))}px`;
+    });
+    rect.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+
+    svg.appendChild(rect);
+  });
+
+  const nowLine = document.createElementNS(NS, 'line');
+  nowLine.setAttribute('x1', nowX);
+  nowLine.setAttribute('y1', 0);
+  nowLine.setAttribute('x2', nowX);
+  nowLine.setAttribute('y2', BAR_H);
+  nowLine.setAttribute('stroke', 'rgba(255,255,255,0.65)');
+  nowLine.setAttribute('stroke-width', '1.5');
+  svg.appendChild(nowLine);
+
+  const labelsDiv = document.createElement('div');
+  labelsDiv.className = 'electricity-graph-labels';
+  for (let i = 0; i <= SLOTS; i += 12) {
+    const span = document.createElement('span');
+    span.textContent = new Date(firstSlot.getTime() + i * 30 * 60 * 1000)
+      .toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    labelsDiv.appendChild(span);
+  }
+
+  container.replaceChildren(svg, labelsDiv, tooltip);
+}
+
+async function loadElectricityGraph() {
+  try {
+    const res = await fetch('/api/electricity-rates');
+    renderElectricityGraph(await res.json());
+  } catch {
+    document.getElementById('electricity-graph').replaceChildren();
+  }
+}
+
 function scheduleNextElectricityRefresh() {
   const now = new Date();
   const msIntoSlot = (now.getMinutes() % 30) * 60 * 1000 + now.getSeconds() * 1000 + now.getMilliseconds();
   const msUntilNextSlot = 30 * 60 * 1000 - msIntoSlot;
   setTimeout(() => {
     loadElectricityPrice();
+    loadElectricityGraph();
     scheduleNextElectricityRefresh();
   }, msUntilNextSlot);
 }
 
 loadElectricityPrice();
+loadElectricityGraph();
 scheduleNextElectricityRefresh();

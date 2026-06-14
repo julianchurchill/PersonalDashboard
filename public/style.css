@@ -210,6 +210,47 @@ main {
   margin-top: 0.6rem;
 }
 
+.electricity-next {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.electricity-graph {
+  position: relative;
+  padding: 0.25rem 0 0.6rem;
+}
+
+.electricity-graph-tooltip {
+  position: absolute;
+  top: 0.35rem;
+  transform: translateX(-50%);
+  background: var(--border);
+  color: var(--text-primary);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.electricity-graph svg {
+  display: block;
+  width: 100%;
+  height: 52px;
+}
+
+.electricity-graph-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0.5rem 0;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .electricity-price-negative    { color: #6c8ebf; }
 .electricity-price-cheap       { color: #4caf82; }
 .electricity-price-normal      { color: var(--text-primary); }
