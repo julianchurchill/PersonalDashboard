@@ -82,6 +82,18 @@ async function getGasProductCode() {
   return match[1];
 }
 
+async function fetchStandingCharge(productCode, tariffType, tariffCode) {
+  const url = `${API_BASE}/products/${productCode}/${tariffType}-tariffs/${tariffCode}/standing-charges/?page_size=5`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Standing charges fetch failed: ${res.status} (tariff: ${tariffCode})`);
+  const data = await res.json();
+  const now = new Date();
+  const current = (data.results ?? []).find(r =>
+    new Date(r.valid_from) <= now && (!r.valid_to || new Date(r.valid_to) > now)
+  );
+  return current?.value_inc_vat ?? null;
+}
+
 export function isGasConfigured() {
   return !!(process.env.OCTOPUS_API_KEY && process.env.OCTOPUS_ACCOUNT_NUMBER);
 }
@@ -90,11 +102,14 @@ export async function getGasRate() {
   const [productCode, region] = await Promise.all([getGasProductCode(), getRegion()]);
   const tariffCode = `G-1R-${productCode}-${region}`;
 
-  const url = `${API_BASE}/products/${productCode}/gas-tariffs/${tariffCode}/standard-unit-rates/?page_size=5`;
+  const ratesUrl = `${API_BASE}/products/${productCode}/gas-tariffs/${tariffCode}/standard-unit-rates/?page_size=5`;
+  const [ratesRes, standingCharge] = await Promise.all([
+    fetch(ratesUrl),
+    fetchStandingCharge(productCode, 'gas', tariffCode),
+  ]);
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Gas rates fetch failed: ${res.status} (tariff: ${tariffCode})`);
-  const data = await res.json();
+  if (!ratesRes.ok) throw new Error(`Gas rates fetch failed: ${ratesRes.status} (tariff: ${tariffCode})`);
+  const data = await ratesRes.json();
 
   const now = new Date();
   const current = (data.results ?? []).find(r =>
@@ -106,6 +121,7 @@ export async function getGasRate() {
     rate: current.value_inc_vat,
     validFrom: current.valid_from,
     validTo: current.valid_to,
+    standingCharge,
   };
 }
 
@@ -144,12 +160,16 @@ export async function getCurrentRate() {
   slotStart.setMinutes(Math.floor(slotStart.getMinutes() / 30) * 30, 0, 0);
   const twoSlotsEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
-  const url = `${API_BASE}/products/${productCode}/electricity-tariffs/${tariffCode}/standard-unit-rates/` +
+  const ratesUrl = `${API_BASE}/products/${productCode}/electricity-tariffs/${tariffCode}/standard-unit-rates/` +
     `?period_from=${slotStart.toISOString()}&period_to=${twoSlotsEnd.toISOString()}`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Rates fetch failed: ${res.status} (tariff: ${tariffCode})`);
-  const data = await res.json();
+  const [ratesRes, standingCharge] = await Promise.all([
+    fetch(ratesUrl),
+    fetchStandingCharge(productCode, 'electricity', tariffCode),
+  ]);
+
+  if (!ratesRes.ok) throw new Error(`Rates fetch failed: ${ratesRes.status} (tariff: ${tariffCode})`);
+  const data = await ratesRes.json();
 
   const results = (data.results ?? []).sort(
     (a, b) => new Date(a.valid_from) - new Date(b.valid_from)
@@ -163,6 +183,7 @@ export async function getCurrentRate() {
     rate: current.value_inc_vat,
     validFrom: current.valid_from,
     validTo: current.valid_to,
+    standingCharge,
     ...(next ? {
       nextRate: next.value_inc_vat,
       nextValidFrom: next.valid_from,
