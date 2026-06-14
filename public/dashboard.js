@@ -553,3 +553,65 @@ async function loadDeco() {
 
 loadDeco();
 setInterval(loadDeco, 10_000);
+
+function renderCctv(data) {
+  const body  = document.getElementById('cctv-body');
+  const badge = document.getElementById('cctv-badge');
+
+  if (data.status === 'unconfigured') {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', 'CCTV_IP / CCTV_PASSWORD not set.');
+    return;
+  }
+
+  badge.textContent = 'Live';
+  badge.className = 'widget-badge active';
+
+  const grid = document.createElement('div');
+  grid.className = 'cctv-grid';
+
+  for (let ch = 1; ch <= 4; ch++) {
+    const cam = document.createElement('div');
+    cam.className = 'cctv-camera';
+    cam.id = `cctv-cam-${ch}`;
+
+    const img = document.createElement('img');
+    img.className = 'cctv-img';
+    img.alt = `Camera ${ch}`;
+    img.src = `/api/cctv/snapshot/${ch}?t=${Date.now()}`;
+    img.onerror = () => { img.style.visibility = 'hidden'; };
+    img.onload  = () => { img.style.visibility = ''; };
+
+    const label = document.createElement('div');
+    label.className = 'cctv-label';
+    label.textContent = `Camera ${ch}`;
+
+    cam.append(img, label);
+    grid.appendChild(cam);
+  }
+
+  body.replaceChildren(grid);
+}
+
+async function loadCctv() {
+  try {
+    const res = await fetch('/api/cctv');
+    renderCctv(await res.json());
+  } catch {
+    document.getElementById('cctv-body').replaceChildren();
+  }
+}
+
+function refreshCctvSnapshots() {
+  for (let ch = 1; ch <= 4; ch++) {
+    const img = document.querySelector(`#cctv-cam-${ch} .cctv-img`);
+    if (!img) return;
+    img.onerror = () => { img.style.visibility = 'hidden'; };
+    img.onload  = () => { img.style.visibility = ''; };
+    img.src = `/api/cctv/snapshot/${ch}?t=${Date.now()}`;
+  }
+}
+
+loadCctv();
+setInterval(refreshCctvSnapshots, 15_000);

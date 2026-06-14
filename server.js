@@ -7,6 +7,7 @@ import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from '.
 import { getCurrentWeather, isWeatherConfigured } from './weather.js';
 import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
 import { getDecoStatus, isDecoConfigured, invalidateDecoSession } from './deco.js';
+import { getSnapshot, isCctvConfigured } from './cctv.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -75,6 +76,21 @@ app.get('/api/myenergi', async (_req, res) => {
   } catch (err) {
     res.status(503).json({ status: 'error', message: err.message });
   }
+});
+
+app.get('/api/cctv', (_req, res) => {
+  if (!isCctvConfigured()) return res.json({ status: 'unconfigured' });
+  res.json({ status: 'ok' });
+});
+
+app.get('/api/cctv/snapshot/:channel', (req, res) => {
+  if (!isCctvConfigured()) return res.status(404).end();
+  const channel = parseInt(req.params.channel, 10);
+  const data = getSnapshot(channel);
+  if (!data) return res.status(503).json({ error: 'snapshot not yet available' });
+  res.set('Content-Type', 'image/jpeg');
+  res.set('Cache-Control', 'no-store');
+  res.send(data);
 });
 
 app.get('/api/deco', async (_req, res) => {
