@@ -55,6 +55,8 @@ function aesDecrypt(b64, keyStr, ivStr) {
 
 // HTTPS POST, skipping self-signed cert validation
 function post(ip, path, body, extraHeaders = {}) {
+  // Content-Type is always application/json: the server routes on CT to find the encrypted handler.
+  // Unencrypted calls (keys, auth) send real JSON; encrypted calls send form-encoded sign=&data=.
   const isJson = typeof body !== 'string';
   const bodyBuf = Buffer.from(isJson ? JSON.stringify(body) : body, 'utf8');
 
@@ -62,7 +64,7 @@ function post(ip, path, body, extraHeaders = {}) {
     const req = httpsRequest({
       hostname: ip, port: 443, path, method: 'POST',
       headers: {
-        'Content-Type': isJson ? 'application/json' : 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'Content-Length': bodyBuf.length,
         ...extraHeaders,
       },
@@ -70,11 +72,12 @@ function post(ip, path, body, extraHeaders = {}) {
     }, (res) => {
       let data = '';
       const setCookie = res.headers['set-cookie'] ?? [];
+      const status = res.statusCode;
       res.on('data', c => data += c);
       res.on('end', () => {
         const cookies = setCookie.map(c => c.split(';')[0]).join('; ');
-        try { resolve({ json: JSON.parse(data), cookies }); }
-        catch  { resolve({ json: null, raw: data, cookies }); }
+        try { resolve({ json: JSON.parse(data), cookies, status }); }
+        catch  { resolve({ json: null, raw: data, cookies, status }); }
       });
     });
     req.on('error', reject);
@@ -87,14 +90,13 @@ function encodePayload(payload, aesKey, aesIv, signN, signE, authHash, seq) {
   const data    = aesEncrypt(JSON.stringify(payload), aesKey, aesIv);
   const dataLen = data.length;
   const signText = `k=${aesKey}&i=${aesIv}&h=${authHash}&s=${seq + dataLen}`;
-  const sign     = rsaEncrypt(signN, signE, signText);
-  return { body: `sign=${sign}&data=${encodeURIComponent(data)}`, dataLen };
+  const sign = rsaEncrypt(signN, signE, signText);
+  return `sign=${sign}&data=${encodeURIComponent(data)}`;
 }
 
 async function login() {
   const ip       = process.env.DECO_IP;
   const password = process.env.DECO_PASSWORD;
-  const username = 'admin';
 
   const aesKey = randomDigits();
   const aesIv  = randomDigits();
@@ -106,22 +108,22 @@ async function login() {
   const authRes = await post(ip, '/cgi-bin/luci/;stok=/login?form=auth', { operation: 'read' });
   if (authRes.json?.error_code !== 0) throw new Error(`Deco auth: ${JSON.stringify(authRes.json)}`);
   const [signN, signE] = authRes.json.result.key;
-  let seq = authRes.json.result.seq;
+  const seq = authRes.json.result.seq;
 
-  const encPass    = rsaEncrypt(passN, passE, password);
-  const authHash   = md5(`${username}${password}`);
-  const loginPayload = { username, password: encPass, operation: 'login' };
-  const { body, dataLen } = encodePayload(loginPayload, aesKey, aesIv, signN, signE, authHash, seq);
-  seq += dataLen;
+  const encPass  = rsaEncrypt(passN, passE, password);
+  const authHash = md5('admin' + password);
 
-  const loginRes = await post(ip, '/cgi-bin/luci/;stok=/login?form=login', body);
-  if (!loginRes.json?.data) throw new Error(`Deco login failed: ${JSON.stringify(loginRes.json)}`);
-
+  const loginBody = encodePayload(
+    { operation: 'login', params: { password: encPass } },
+    aesKey, aesIv, signN, signE, authHash, seq,
+  );
+  const loginRes = await post(ip, '/cgi-bin/luci/;stok=/login?form=login', loginBody);
+  if (!loginRes.json?.data) throw new Error(`Deco login: ${JSON.stringify(loginRes.json ?? loginRes.raw)}`);
   const loginData = JSON.parse(aesDecrypt(loginRes.json.data, aesKey, aesIv));
-  if (loginData.error_code !== 0) throw new Error(`Deco login error code: ${loginData.error_code}`);
+  if (loginData.error_code !== 0) throw new Error(`Deco login failed: ${JSON.stringify(loginData)}`);
 
   return {
-    stok: loginData.result?.stok ?? loginData.stok,
+    stok: loginData.result?.stok,
     sysauth: loginRes.cookies,
     aesKey, aesIv, signN, signE, authHash, seq,
     expiry: Date.now() + 5 * 60 * 1000,
@@ -141,11 +143,10 @@ async function apiPost(urlPath, payload) {
   const ip      = process.env.DECO_IP;
   const session = await getSession();
   const path    = `/cgi-bin/luci/;stok=${session.stok}${urlPath}`;
-  const { body, dataLen } = encodePayload(payload, session.aesKey, session.aesIv,
+  const body = encodePayload(payload, session.aesKey, session.aesIv,
     session.signN, session.signE, session.authHash, session.seq);
 
   const res = await post(ip, path, body, { Cookie: session.sysauth });
-  session.seq += dataLen;
 
   if (!res.json?.data) throw new Error(`Deco API error: ${JSON.stringify(res.json)}`);
   return JSON.parse(aesDecrypt(res.json.data, session.aesKey, session.aesIv));
@@ -156,8 +157,6 @@ export async function getDecoStatus() {
     operation: 'read',
     params: { device_mac: 'default' },
   });
-
-  console.log('Deco client_list response:', JSON.stringify(data));
 
   const clients    = data.result?.client_list ?? [];
   const online     = clients.filter(c => c.online !== false);

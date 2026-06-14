@@ -8,3 +8,4 @@ dist/
 .DS_Store
 Thumbs.db
 .devcontainer/.env.devcontainer
+scratch.js
