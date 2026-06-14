@@ -300,6 +300,40 @@ main {
 .widget-badge.electricity-badge-expensive  { background: #3a2a1a; color: #e0a040; }
 .widget-badge.electricity-badge-very-expensive { background: #3a1a1a; color: #c0616a; }
 
+/* --- myenergi Widget --- */
+
+.myenergi-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.myenergi-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.myenergi-value {
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.myenergi-solar    { color: #e0c040; }
+.myenergi-export   { color: #4caf82; }
+.myenergi-import   { color: #e07b4a; }
+.myenergi-charging { color: #6c8ebf; }
+.myenergi-session  { color: var(--text-secondary); font-size: 0.85rem; }
+
+.widget-badge.myenergi-badge-charging {
+  background: #1a2a3f;
+  color: #6c8ebf;
+}
+
 /* --- Footer --- */
 
 footer {
