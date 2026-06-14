@@ -69,3 +69,10 @@ node -e "
   console.log('init-claude-settings: MCP servers written to', settingsPath);
   console.log('  Servers:', Object.keys(settings.mcpServers).join(', '));
 "
+
+# Configure gh as the git credential helper for github.com so that git push/pull
+# uses GH_TOKEN rather than the VS Code credential forwarder (which has no creds).
+if command -v gh &>/dev/null; then
+  echo "Configuring gh as git credential helper for github.com..."
+  gh auth setup-git
+fi

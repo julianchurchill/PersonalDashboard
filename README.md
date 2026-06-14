@@ -2,7 +2,8 @@
 
 ## Running the Dashboard
 
-The dashboard is a Node.js/Express app served on port 3000. Run it in a Docker container so it stays available whenever your PC is on, without needing a terminal open.
+The dashboard is a Node.js/Express app served on port 3000. Run it in a Docker container so it stays
+available whenever your PC is on, without needing a terminal open.
 
 ### Deploying
 
@@ -12,7 +13,9 @@ Run this from the repo root (works for both first-time setup and re-deploying ch
 npm run docker:deploy
 ```
 
-This builds the image, removes the old container if one exists, and starts a fresh one with `--restart unless-stopped` so Docker automatically restarts it when Docker Desktop starts (i.e. on PC boot). The dashboard is then reachable at <http://localhost:3000>.
+This builds the image, removes the old container if one exists, and starts a fresh one with
+`--restart unless-stopped` so Docker automatically restarts it when Docker Desktop starts
+(i.e. on PC boot). The dashboard is then reachable at <http://localhost:3000>.
 
 ### Useful commands
 
@@ -32,7 +35,7 @@ npm run dev    # restarts automatically when server.js changes
 
 ## TODO
 
-- Octopus Agile energy tariff/usage, quick link to eInk monitor raspberry pi
+- Octopus Agile energy usage history, quick link to eInk monitor raspberry pi
 - Solar generation (Solis?)
 - Car charger (myenergi?)
 - Tapo bulbs and sockets
@@ -45,6 +48,7 @@ npm run dev    # restarts automatically when server.js changes
 ## Done
 
 - Resideo heating and hot water controls
+- Octopus Agile electricity price widget (current p/kWh for the active half-hour slot)
 
 ## Dev Containers
 
@@ -70,6 +74,41 @@ The Resideo widget uses the [Honeywell Home API](https://developer.honeywellhome
 4. Open the dashboard at `http://localhost:3000`, click the Resideo widget ("Click to authorise"), and log in with your Resideo account to approve access.
 
 After step 4 the widget will populate automatically and refresh every 60 seconds.
+
+### Octopus Agile electricity price widget
+
+The Octopus widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/), which requires no authentication. It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, and refreshes every 30 minutes.
+
+The only configuration required is your **DNO region letter**, which determines which regional Agile price is shown (prices vary by area):
+
+1. Find your region letter from the table below.
+2. Add it to `.devcontainer/.env.devcontainer`:
+
+   ```env
+   OCTOPUS_REGION=B
+   ```
+
+3. Re-deploy (`npm run docker:deploy`) to pick up the new variable.
+
+#### DNO region codes
+
+| Letter | Area |
+| ------ | ---- |
+| A | Eastern England |
+| B | East Midlands (Nottingham) |
+| C | London |
+| D | Merseyside and North Wales |
+| E | West Midlands |
+| F | North Eastern England |
+| G | North Western England |
+| H | Southern England |
+| J | South Eastern England |
+| K | Southern Wales |
+| L | South Western England |
+| N | Yorkshire |
+| P | North of Scotland |
+
+If `OCTOPUS_REGION` is not set the widget defaults to `C` (London).
 
 ### GitHub access
 

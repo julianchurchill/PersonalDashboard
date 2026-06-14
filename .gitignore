@@ -1,9 +1,9 @@
 node_modules/
-.serena/
 dist/
 .claude/*
 !.claude/commands/
 !.claude/skills/
+!.claude/settings.json
 *.local
 .DS_Store
 Thumbs.db
