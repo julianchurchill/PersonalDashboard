@@ -388,3 +388,86 @@ function scheduleNextElectricityRefresh() {
 loadElectricityPrice();
 loadElectricityGraph();
 scheduleNextElectricityRefresh();
+
+function fmtKw(watts) {
+  return `${(Math.abs(watts) / 1000).toFixed(2)} kW`;
+}
+
+function makeEnergyRow(label, valueText, valueClass) {
+  const labelEl = document.createElement('span');
+  labelEl.className = 'myenergi-label';
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement('span');
+  valueEl.className = `myenergi-value${valueClass ? ' ' + valueClass : ''}`;
+  valueEl.textContent = valueText;
+
+  const row = document.createElement('div');
+  row.className = 'myenergi-row';
+  row.append(labelEl, valueEl);
+  return row;
+}
+
+function renderMyenergi(data) {
+  const body  = document.getElementById('myenergi-body');
+  const badge = document.getElementById('myenergi-badge');
+
+  if (data.status === 'unconfigured') {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', 'MYENERGI_SERIAL / MYENERGI_API_KEY not set.');
+    return;
+  }
+
+  if (data.status === 'error') {
+    badge.textContent = 'Error';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const { solarW, gridW, chargeW, sessionKwh, status, mode, plugged } = data;
+
+  badge.textContent = mode;
+  const charging = status === 'Diverting' || status === 'Boosting';
+  badge.className = `widget-badge${charging ? ' myenergi-badge-charging' : ''}`;
+
+  const rows = [];
+
+  rows.push(makeEnergyRow('Solar generation', fmtKw(solarW), 'myenergi-solar'));
+
+  const houseW = Math.max(0, solarW + gridW - chargeW);
+  rows.push(makeEnergyRow('House consumption', fmtKw(houseW), ''));
+
+  if (gridW > 0) {
+    rows.push(makeEnergyRow('Grid import', fmtKw(gridW), 'myenergi-import'));
+  } else if (gridW < 0) {
+    rows.push(makeEnergyRow('Grid export', fmtKw(gridW), 'myenergi-export'));
+  } else {
+    rows.push(makeEnergyRow('Grid', '0.00 kW', ''));
+  }
+
+  const chargeLabel = !plugged             ? 'Car charging (unplugged)' :
+                      status === 'Complete' ? 'Car charging (complete)'  :
+                      status === 'Paused'   ? 'Car charging (paused)'    :
+                      status === 'Fault'    ? 'Car charging (fault)'     : 'Car charging';
+  rows.push(makeEnergyRow(chargeLabel, fmtKw(chargeW), charging ? 'myenergi-charging' : ''));
+
+  if (plugged && sessionKwh > 0) {
+    rows.push(makeEnergyRow('Session', `${sessionKwh.toFixed(2)} kWh`, 'myenergi-session'));
+  }
+
+  body.replaceChildren(...rows);
+}
+
+async function loadMyenergi() {
+  try {
+    const res = await fetch('/api/myenergi');
+    renderMyenergi(await res.json());
+  } catch {
+    setBodyText(document.getElementById('myenergi-body'), 'widget-error', 'Could not reach myenergi API.');
+  }
+}
+
+loadMyenergi();
+setInterval(loadMyenergi, 30_000);

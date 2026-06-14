@@ -5,6 +5,7 @@ import { getVersionInfo } from './version.js';
 import { isConfigured, getAuthUrl, exchangeCode, getStatus } from './resideo.js';
 import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from './octopus.js';
 import { getCurrentWeather, isWeatherConfigured } from './weather.js';
+import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -59,6 +60,16 @@ app.get('/api/gas-price', async (_req, res) => {
   if (!isGasConfigured()) return res.json({ status: 'unconfigured' });
   try {
     const data = await getGasRate();
+    res.json({ status: 'ok', ...data });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/myenergi', async (_req, res) => {
+  if (!isMyenergiConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const data = await getMyenergiStatus();
     res.json({ status: 'ok', ...data });
   } catch (err) {
     res.status(503).json({ status: 'error', message: err.message });
