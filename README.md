@@ -108,6 +108,21 @@ WEATHER_LOCATION=London
 
 The coordinates are resolved automatically from the location name via the Open-Meteo geocoding API and cached for the lifetime of the server process. If the variable is not set the weather area is left empty.
 
+### Network widget (TP-Link Deco)
+
+Shows current download and upload speeds and the number of connected devices from your TP-Link Deco mesh network. Refreshes every 10 seconds.
+
+The widget uses the Deco's local HTTPS API — no cloud account required.
+
+**Config needed** (both visible on the Deco's admin page):
+
+```env
+DECO_IP=192.168.68.1
+DECO_PASSWORD=your_admin_password
+```
+
+`DECO_IP` is the gateway IP of your Deco — the same address you'd open in a browser to reach the admin UI (typically `192.168.68.1` for Deco mesh, or check your router's DHCP settings). `DECO_PASSWORD` is the admin password you set when first configuring the Deco.
+
 ### myenergi widget
 
 Shows live power data from your myenergi hub — solar generation, grid import/export, and Zappi car charging status. Refreshes every 30 seconds.
