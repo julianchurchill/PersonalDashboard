@@ -160,12 +160,8 @@ export async function getDecoStatus() {
 
   const clients    = data.result?.client_list ?? [];
   const online     = clients.filter(c => c.online !== false);
-  const downloadBps = online.reduce((s, c) => s + (c.down_speed ?? 0), 0);
-  const uploadBps   = online.reduce((s, c) => s + (c.up_speed ?? 0), 0);
+  const downloadKbps = online.reduce((s, c) => s + (c.down_speed ?? 0), 0);
+  const uploadKbps   = online.reduce((s, c) => s + (c.up_speed ?? 0), 0);
 
-  return {
-    connectedDevices: online.length,
-    downloadBps,
-    uploadBps,
-  };
+  return { connectedDevices: online.length, downloadKbps, uploadKbps };
 }
