@@ -197,6 +197,46 @@ async function loadElectricityPrice() {
   }
 }
 
+function renderGasPrice(data) {
+  const body = document.getElementById('gas-body');
+  const badge = document.getElementById('gas-badge');
+
+  badge.textContent = 'Variable';
+  badge.className = 'widget-badge';
+
+  if (data.status === 'unconfigured') {
+    setBodyText(body, 'widget-error', 'OCTOPUS_GAS_PRODUCT_CODE not set.');
+    return;
+  }
+
+  if (data.status === 'error') {
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const priceEl = document.createElement('div');
+  priceEl.className = 'gas-price';
+  priceEl.textContent = `${data.rate.toFixed(2)}p`;
+
+  const unitEl = document.createElement('div');
+  unitEl.className = 'gas-unit';
+  unitEl.textContent = 'per kWh inc. VAT';
+
+  body.replaceChildren(priceEl, unitEl);
+}
+
+async function loadGasPrice() {
+  try {
+    const res = await fetch('/api/gas-price');
+    renderGasPrice(await res.json());
+  } catch {
+    setBodyText(document.getElementById('gas-body'), 'widget-error', 'Could not reach gas price API.');
+  }
+}
+
+loadGasPrice();
+setInterval(loadGasPrice, 60 * 60 * 1000);
+
 function renderElectricityGraph(data) {
   const container = document.getElementById('electricity-graph');
 

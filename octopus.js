@@ -64,6 +64,34 @@ export async function getUpcomingRates() {
     }));
 }
 
+export function isGasConfigured() {
+  return !!process.env.OCTOPUS_GAS_PRODUCT_CODE;
+}
+
+export async function getGasRate() {
+  const productCode = process.env.OCTOPUS_GAS_PRODUCT_CODE;
+  const region = getRegion();
+  const tariffCode = `G-1R-${productCode}-${region}`;
+
+  const url = `${API_BASE}/products/${productCode}/gas-tariffs/${tariffCode}/standard-unit-rates/?page_size=5`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Gas rates fetch failed: ${res.status} (tariff: ${tariffCode})`);
+  const data = await res.json();
+
+  const now = new Date();
+  const current = (data.results ?? []).find(r =>
+    new Date(r.valid_from) <= now && (!r.valid_to || new Date(r.valid_to) > now)
+  );
+  if (!current) throw new Error('No current gas rate found');
+
+  return {
+    rate: current.value_inc_vat,
+    validFrom: current.valid_from,
+    validTo: current.valid_to,
+  };
+}
+
 export async function getCurrentRate() {
   const productCode = await getAgileProductCode();
   const region = getRegion();
