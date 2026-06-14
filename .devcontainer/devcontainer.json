@@ -68,7 +68,7 @@
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "forwardPorts": [3000],
+  "forwardPorts": [3000, 24225],
   "postStartCommand": "bash /workspace/.devcontainer/init-claude-settings.sh",
   "waitFor": "postStartCommand"
 }

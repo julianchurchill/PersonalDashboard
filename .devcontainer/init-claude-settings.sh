@@ -70,6 +70,15 @@ node -e "
   console.log('  Servers:', Object.keys(settings.mcpServers).join(', '));
 "
 
+# Start the Serena project server (dashboard backend) in the background.
+# The web UI is accessible at http://localhost:24225 once forwarded.
+if command -v uvx &>/dev/null; then
+  echo "Starting Serena project server on port 24225..."
+  nohup uvx --from git+https://github.com/oraios/serena \
+    serena start-project-server --host 0.0.0.0 --port 24225 \
+    >> /tmp/serena-dashboard.log 2>&1 &
+fi
+
 # Configure gh as the git credential helper for github.com so that git push/pull
 # uses GH_TOKEN rather than the VS Code credential forwarder (which has no creds).
 if command -v gh &>/dev/null; then
