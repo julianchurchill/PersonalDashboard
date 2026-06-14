@@ -2,6 +2,8 @@ const API_BASE = 'https://api.octopus.energy/v1';
 
 let _cachedProductCode = null;
 let _productCodeFetchedAt = 0;
+let _cachedGasProductCode = null;
+let _gasProductCodeFetchedAt = 0;
 const PRODUCT_TTL_MS = 24 * 60 * 60 * 1000;
 
 function getRegion() {
@@ -65,11 +67,44 @@ export async function getUpcomingRates() {
 }
 
 export function isGasConfigured() {
-  return !!process.env.OCTOPUS_GAS_PRODUCT_CODE;
+  return !!(process.env.OCTOPUS_GAS_PRODUCT_CODE ||
+    (process.env.OCTOPUS_API_KEY && process.env.OCTOPUS_ACCOUNT_NUMBER));
+}
+
+async function getGasProductCode() {
+  if (process.env.OCTOPUS_GAS_PRODUCT_CODE) return process.env.OCTOPUS_GAS_PRODUCT_CODE;
+
+  if (_cachedGasProductCode && Date.now() - _gasProductCodeFetchedAt < PRODUCT_TTL_MS) {
+    return _cachedGasProductCode;
+  }
+
+  const { OCTOPUS_API_KEY: apiKey, OCTOPUS_ACCOUNT_NUMBER: accountNumber } = process.env;
+  const credentials = Buffer.from(`${apiKey}:`).toString('base64');
+  const res = await fetch(`${API_BASE}/accounts/${accountNumber}/`, {
+    headers: { Authorization: `Basic ${credentials}` },
+  });
+  if (!res.ok) throw new Error(`Account fetch failed: ${res.status}`);
+  const data = await res.json();
+
+  const now = new Date();
+  const tariffCode = data.properties
+    ?.flatMap(p => p.gas_meter_points ?? [])
+    ?.flatMap(m => m.agreements ?? [])
+    ?.find(a => new Date(a.valid_from) <= now && (!a.valid_to || new Date(a.valid_to) > now))
+    ?.tariff_code;
+
+  if (!tariffCode) throw new Error('No active gas tariff found on account');
+
+  const match = /^G-1R-(.+)-[A-Z]$/.exec(tariffCode);
+  if (!match) throw new Error(`Unexpected gas tariff code format: ${tariffCode}`);
+
+  _cachedGasProductCode = match[1];
+  _gasProductCodeFetchedAt = Date.now();
+  return _cachedGasProductCode;
 }
 
 export async function getGasRate() {
-  const productCode = process.env.OCTOPUS_GAS_PRODUCT_CODE;
+  const productCode = await getGasProductCode();
   const region = getRegion();
   const tariffCode = `G-1R-${productCode}-${region}`;
 

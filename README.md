@@ -115,30 +115,37 @@ If `OCTOPUS_REGION` is not set the widget defaults to `C` (London).
 
 Shows the current gas unit rate in p/kWh (inc. VAT) from your Octopus variable gas tariff. Refreshes hourly.
 
-Requires your **gas product code** and the same `OCTOPUS_REGION` used for electricity.
+Requires the same `OCTOPUS_REGION` used for electricity, plus one of the two configuration options below.
 
-#### Finding your gas product code
+#### Option A — automatic discovery (recommended)
 
-The easiest way is via the Octopus API. Your **account number** (e.g. `A-12345678`) and **API key** are both visible in your Octopus online account under **Account → API access**.
+Supply your Octopus **API key** and **account number** (both visible under **Account → API access** at octopus.energy) and the dashboard will look up your active gas tariff automatically:
+
+```env
+OCTOPUS_API_KEY=sk_live_xxxxxxxxxxxx
+OCTOPUS_ACCOUNT_NUMBER=A-12345678
+```
+
+The product code is cached for 24 hours so the account API is not called on every refresh.
+
+#### Option B — manual product code
+
+If you prefer not to store credentials, set the product code directly. To find it, look at any recent Octopus bill or run:
 
 ```bash
 curl -u "{your_api_key}:" \
   "https://api.octopus.energy/v1/accounts/{your_account_number}/"
 ```
 
-Find your gas meter's `agreements[].tariff_code` in the response — it looks like `G-1R-VAR-22-11-01-C`. Strip the leading `G-1R-` and the trailing `-{region_letter}` to get the product code, e.g. **`VAR-22-11-01`**.
-
-The tariff name is also shown on any recent Octopus bill or on the tariff page in your online account.
-
-#### Configuration
-
-Add the product code to `.devcontainer/.env.devcontainer`:
+Find your gas meter's `agreements[].tariff_code` in the response — it looks like `G-1R-VAR-22-11-01-C`. Strip the leading `G-1R-` and the trailing `-{region_letter}` to get the product code, e.g. **`VAR-22-11-01`**:
 
 ```env
 OCTOPUS_GAS_PRODUCT_CODE=VAR-22-11-01
 ```
 
-Then re-deploy (`npm run docker:deploy`). If the variable is not set the widget shows an unconfigured message.
+`OCTOPUS_GAS_PRODUCT_CODE` takes precedence over auto-discovery if both are set.
+
+Then re-deploy (`npm run docker:deploy`). If neither option is configured the widget shows an unconfigured message.
 
 ### GitHub access
 
