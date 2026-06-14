@@ -434,7 +434,10 @@ function renderMyenergi(data) {
 
   const rows = [];
 
-  rows.push(makeEnergyRow('Solar', fmtKw(solarW), 'myenergi-solar'));
+  rows.push(makeEnergyRow('Solar generation', fmtKw(solarW), 'myenergi-solar'));
+
+  const houseW = Math.max(0, solarW + gridW - chargeW);
+  rows.push(makeEnergyRow('House consumption', fmtKw(houseW), ''));
 
   if (gridW > 0) {
     rows.push(makeEnergyRow('Grid import', fmtKw(gridW), 'myenergi-import'));
@@ -444,10 +447,10 @@ function renderMyenergi(data) {
     rows.push(makeEnergyRow('Grid', '0.00 kW', ''));
   }
 
-  const chargeLabel = !plugged             ? 'Charging (unplugged)' :
-                      status === 'Complete' ? 'Charging (complete)'  :
-                      status === 'Paused'   ? 'Charging (paused)'    :
-                      status === 'Fault'    ? 'Charging (fault)'     : 'Charging';
+  const chargeLabel = !plugged             ? 'Car charging (unplugged)' :
+                      status === 'Complete' ? 'Car charging (complete)'  :
+                      status === 'Paused'   ? 'Car charging (paused)'    :
+                      status === 'Fault'    ? 'Car charging (fault)'     : 'Car charging';
   rows.push(makeEnergyRow(chargeLabel, fmtKw(chargeW), charging ? 'myenergi-charging' : ''));
 
   if (plugged && sessionKwh > 0) {
