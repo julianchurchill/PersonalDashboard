@@ -8,6 +8,7 @@ RUN npm ci --omit=dev
 COPY server.js ./
 COPY version.js ./
 COPY resideo.js ./
+COPY octopus.js ./
 COPY tokenStore.js ./
 COPY public/ ./public/
 
