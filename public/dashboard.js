@@ -473,10 +473,9 @@ loadMyenergi();
 setInterval(loadMyenergi, 30_000);
 
 function fmtSpeed(kbps) {
-  if (!kbps) return '0 kB/s';
-  const kbs = kbps / 8;
-  if (kbs >= 1000) return `${(kbs / 1000).toFixed(1)} MB/s`;
-  return `${kbs.toFixed(1)} kB/s`;
+  if (!kbps) return '0 kbps';
+  if (kbps >= 1000) return `${(kbps / 1000).toFixed(1)} Mbps`;
+  return `${Math.round(kbps)} kbps`;
 }
 
 function renderDeco(data) {
