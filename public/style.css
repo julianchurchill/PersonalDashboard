@@ -361,6 +361,16 @@ main {
 
 /* --- CCTV Widget --- */
 
+.widget-badge.cctv-badge-back {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.widget-badge.cctv-badge-back:hover {
+  background: var(--accent);
+  color: var(--text-primary);
+}
+
 #cctv-body {
   padding: 0.75rem;
 }
