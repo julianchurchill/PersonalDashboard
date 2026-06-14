@@ -444,9 +444,10 @@ function renderMyenergi(data) {
     rows.push(makeEnergyRow('Grid', '0.00 kW', ''));
   }
 
-  const chargeLabel = status === 'Complete' ? 'Charging (complete)' :
-                      status === 'Paused'   ? 'Charging (paused)'  :
-                      status === 'Fault'    ? 'Charging (fault)'   : 'Charging';
+  const chargeLabel = !plugged             ? 'Charging (unplugged)' :
+                      status === 'Complete' ? 'Charging (complete)'  :
+                      status === 'Paused'   ? 'Charging (paused)'    :
+                      status === 'Fault'    ? 'Charging (fault)'     : 'Charging';
   rows.push(makeEnergyRow(chargeLabel, fmtKw(chargeW), charging ? 'myenergi-charging' : ''));
 
   if (plugged && sessionKwh > 0) {

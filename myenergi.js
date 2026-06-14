@@ -78,7 +78,10 @@ const ZAPPI_MODE   = { 1: 'Fast', 2: 'Eco', 3: 'Eco+', 4: 'Stopped' };
 export async function getMyenergiStatus() {
   const data = await apiGet('/cgi-jstatus-*');
 
-  const zappi = data.zappi?.[0];
+  // Response is an array of single-key objects: [{eddi:[]},{zappi:[...]},{asn:...}]
+  const list = Array.isArray(data) ? data : [data];
+  const zappiEntry = list.find(item => item.zappi);
+  const zappi = zappiEntry?.zappi?.[0];
   if (!zappi) throw new Error('No Zappi found on myenergi account');
 
   // grd: positive = importing from grid, negative = exporting to grid
