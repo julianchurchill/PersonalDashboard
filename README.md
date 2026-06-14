@@ -78,44 +78,15 @@ After step 4 the widget will populate automatically and refresh every 60 seconds
 
 ### Octopus Agile electricity price widget
 
-The Octopus widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/), which requires no authentication. It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, the next slot's price, a 24-hour price graph, and refreshes every 30 minutes.
+The Octopus electricity widget uses the [Octopus Energy public REST API](https://developer.octopus.energy/rest/). It shows the current half-hourly unit rate in p/kWh (inc. VAT), colour-coded by price level, the next slot's price, a 24-hour price graph, and refreshes every 30 minutes.
 
-The only configuration required is your **DNO region letter**, which determines which regional Agile price is shown (prices vary by area):
-
-1. Find your region letter from the table below.
-2. Add it to `.devcontainer/.env.devcontainer`:
-
-   ```env
-   OCTOPUS_REGION=B
-   ```
-
-3. Re-deploy (`npm run docker:deploy`) to pick up the new variable.
-
-#### DNO region codes
-
-| Letter | Area |
-| ------ | ---- |
-| A | Eastern England |
-| B | East Midlands (Nottingham) |
-| C | London |
-| D | Merseyside and North Wales |
-| E | West Midlands |
-| F | North Eastern England |
-| G | North Western England |
-| H | Southern England |
-| J | South Eastern England |
-| K | Southern Wales |
-| L | South Western England |
-| N | Yorkshire |
-| P | North of Scotland |
-
-If `OCTOPUS_REGION` is not set the widget defaults to `C` (London).
+The DNO region is discovered automatically from your account — no manual configuration needed. See the gas price widget section below for the required `OCTOPUS_API_KEY` and `OCTOPUS_ACCOUNT_NUMBER` variables.
 
 ### Octopus gas price widget
 
 Shows the current gas unit rate in p/kWh (inc. VAT) from your Octopus variable gas tariff. Refreshes hourly.
 
-Requires the same `OCTOPUS_REGION` used for electricity. Supply your Octopus **API key** and **account number** (both visible under **Account → API access** at octopus.energy) and the dashboard will look up your active gas tariff automatically:
+Supply your Octopus **API key** and **account number** (both visible under **Account → API access** at octopus.energy). The dashboard will look up your active gas tariff and DNO region automatically:
 
 ```env
 OCTOPUS_API_KEY=sk_live_xxxxxxxxxxxx
