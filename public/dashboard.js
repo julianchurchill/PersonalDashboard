@@ -242,8 +242,10 @@ function renderElectricityGraph(data) {
       const from = new Date(slot.validFrom).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const to   = new Date(slot.validTo  ).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       tooltip.textContent = `${slot.rate.toFixed(2)}p · ${from}–${to}`;
-      tooltip.style.left = `${br.left - cr.left + br.width / 2}px`;
       tooltip.hidden = false;
+      const barCenterX = br.left - cr.left + br.width / 2;
+      const half = tooltip.offsetWidth / 2;
+      tooltip.style.left = `${Math.max(half, Math.min(barCenterX, cr.width - half))}px`;
     });
     rect.addEventListener('mouseleave', () => { tooltip.hidden = true; });
 
