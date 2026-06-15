@@ -9,6 +9,7 @@ import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
 import { getDecoStatus, isDecoConfigured, invalidateDecoSession, getDecoUrl } from './deco.js';
 import { getSnapshot, isCctvConfigured } from './cctv.js';
 import { isCalendarConfigured, getCalendarAuthUrl, exchangeCalendarCode, getCalendarEvents } from './calendar.js';
+import { isTapoConfigured, getTapoStatus, setTapoState } from './tapo.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -102,6 +103,30 @@ app.get('/api/deco', async (_req, res) => {
   } catch (err) {
     invalidateDecoSession();
     res.status(503).json({ status: 'error', url: getDecoUrl(), message: err.message });
+  }
+});
+
+app.get('/api/tapo', async (_req, res) => {
+  if (!isTapoConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const devices = await getTapoStatus();
+    res.json({ status: 'ok', devices });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.post('/api/tapo/:ip/:action', async (req, res) => {
+  if (!isTapoConfigured()) return res.status(404).end();
+  const { ip, action } = req.params;
+  if (action !== 'on' && action !== 'off') {
+    return res.status(400).json({ status: 'error', message: 'action must be on or off' });
+  }
+  try {
+    await setTapoState(ip, action === 'on');
+    res.json({ status: 'ok' });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
   }
 });
 

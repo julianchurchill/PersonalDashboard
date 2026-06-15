@@ -738,3 +738,103 @@ function refreshCctvSnapshots() {
 
 loadCctv();
 setInterval(refreshCctvSnapshots, 15_000);
+
+function tapoIcon(type) {
+  if (type === 'light') return '💡';
+  if (type === 'plug')  return '🔌';
+  return '🔘';
+}
+
+async function setTapo(ip, on, toggle) {
+  toggle.classList.add('tapo-pending');
+  try {
+    const res = await fetch(`/api/tapo/${encodeURIComponent(ip)}/${on ? 'on' : 'off'}`, { method: 'POST' });
+    if (!res.ok) throw new Error('request failed');
+  } catch {
+    // ignore — the reload below reflects the real state either way
+  } finally {
+    loadTapo();
+  }
+}
+
+function makeTapoRow(d) {
+  const row = document.createElement('div');
+  row.className = 'tapo-row';
+
+  const icon = document.createElement('span');
+  icon.className = 'tapo-icon';
+  icon.textContent = tapoIcon(d.type);
+
+  const name = document.createElement('span');
+  name.className = 'tapo-name';
+  name.textContent = d.name;
+
+  row.append(icon, name);
+
+  if (!d.reachable) {
+    const offline = document.createElement('span');
+    offline.className = 'tapo-offline';
+    offline.textContent = 'Offline';
+    row.append(offline);
+    return row;
+  }
+
+  const toggle = document.createElement('button');
+  toggle.className = `tapo-toggle${d.on ? ' on' : ''}`;
+  toggle.title = `Turn ${d.name} ${d.on ? 'off' : 'on'}`;
+  toggle.setAttribute('aria-label', toggle.title);
+  toggle.onclick = () => setTapo(d.ip, !d.on, toggle);
+
+  const knob = document.createElement('span');
+  knob.className = 'tapo-knob';
+  toggle.append(knob);
+
+  row.append(toggle);
+  return row;
+}
+
+function renderTapo(data) {
+  const body  = document.getElementById('tapo-body');
+  const badge = document.getElementById('tapo-badge');
+
+  if (data.status === 'unconfigured') {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', 'TAPO_EMAIL / TAPO_PASSWORD / TAPO_DEVICES not set.');
+    return;
+  }
+
+  if (data.status === 'error') {
+    badge.textContent = 'Error';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const devices = data.devices ?? [];
+  if (!devices.length) {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-loading', 'No devices configured.');
+    return;
+  }
+
+  const reachable = devices.filter(d => d.reachable);
+  const onCount = reachable.filter(d => d.on).length;
+  badge.textContent = `${onCount}/${reachable.length} on`;
+  badge.className = 'widget-badge' + (onCount ? ' active' : '');
+
+  body.replaceChildren(...devices.map(makeTapoRow));
+}
+
+async function loadTapo() {
+  try {
+    const res = await fetch('/api/tapo');
+    renderTapo(await res.json());
+  } catch {
+    setBodyText(document.getElementById('tapo-body'), 'widget-error', 'Could not reach Tapo API.');
+  }
+}
+
+loadTapo();
+setInterval(loadTapo, 30_000);

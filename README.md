@@ -37,7 +37,6 @@ npm run dev    # restarts automatically when server.js changes
 
 - Octopus Agile energy usage history, quick link to eInk monitor raspberry pi
 - Solar generation (Solis?)
-- Tapo bulbs and sockets
 - Google Keep notes
 - OurGroceries shopping list?
 
@@ -51,6 +50,7 @@ npm run dev    # restarts automatically when server.js changes
 - myenergi widget (solar generation, grid import/export, Zappi charging status)
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
 - Google Calendar header display (next 3 events from the family calendar, with name and date/time)
+- Tapo smart plugs &amp; lights widget (shows on/off state, toggle each device on or off)
 
 ## Dev Containers
 
@@ -193,6 +193,27 @@ GOOGLE_CALENDAR_ID=abc123@group.calendar.google.com
 ```
 
 The calendar ID is found under **Settings → \<calendar name\> → Integrate calendar → Calendar ID** in Google Calendar. If `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are not set the header display stays empty.
+
+### Tapo smart plugs & lights widget
+
+Lists your TP-Link Tapo plugs and lights with their current on/off state, and lets you toggle each one on or off directly from the dashboard. Refreshes every 30 seconds. Devices are controlled **locally** over your LAN (no cloud round-trip), though your TP-Link account credentials are still required for the device handshake.
+
+**Config needed:**
+
+```env
+TAPO_EMAIL=you@example.com
+TAPO_PASSWORD=your_tplink_password
+TAPO_DEVICES=192.168.0.50,192.168.0.51
+```
+
+- `TAPO_EMAIL` / `TAPO_PASSWORD` are your **TP-Link / Tapo account** credentials (the same ones used in the Tapo app).
+- `TAPO_DEVICES` is a comma-separated list of your devices' **local IP addresses**. Assign each device a static/reserved IP in your router so they don't change. By default each device's own nickname (set in the Tapo app) is shown as its label; to override the label use `Label=IP` entries, e.g.:
+
+  ```env
+  TAPO_DEVICES=Living Room Lamp=192.168.0.50,Office Plug=192.168.0.51
+  ```
+
+A device that can't be reached is shown as **Offline** (each device call is capped at 6 seconds so one offline device doesn't hold up the rest). If `TAPO_EMAIL`, `TAPO_PASSWORD`, or `TAPO_DEVICES` is not set the widget shows an unconfigured message.
 
 ### GitHub access
 
