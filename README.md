@@ -47,7 +47,7 @@ npm run dev    # restarts automatically when server.js changes
 - Octopus Agile electricity price widget (current p/kWh, next slot price, 24-hour price graph)
 - Octopus gas price widget (current unit rate in p/kWh)
 - Open-Meteo current conditions in the header (temperature, condition, click to open forecast)
-- TP-Link Deco network widget (live speeds, top 5 users by bandwidth)
+- TP-Link Deco network widget (live speeds, top 5 users by bandwidth, click to open the Deco admin page)
 - myenergi widget (solar generation, grid import/export, Zappi charging status)
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
 - Google Calendar header display (next 3 events from the family calendar, with name and date/time)
@@ -110,7 +110,7 @@ The coordinates are resolved automatically from the location name via the Open-M
 
 ### Network widget (TP-Link Deco)
 
-Shows current download and upload speeds and the number of connected devices from your TP-Link Deco mesh network. Refreshes every 10 seconds.
+Shows current download and upload speeds and the number of connected devices from your TP-Link Deco mesh network. Refreshes every 10 seconds. Click the widget to open the Deco admin page (`http://DECO_IP`) in a new tab.
 
 The widget uses the Deco's local HTTPS API — no cloud account required.
 

@@ -5,6 +5,10 @@ export function isDecoConfigured() {
   return !!(process.env.DECO_IP && process.env.DECO_PASSWORD);
 }
 
+export function getDecoUrl() {
+  return process.env.DECO_IP ? `http://${process.env.DECO_IP}` : null;
+}
+
 let _session = null;
 
 // Random 16-digit decimal string (no leading zero) — used as AES key / IV
