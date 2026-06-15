@@ -774,7 +774,10 @@ function makeTapoRow(d) {
   if (!d.reachable) {
     const offline = document.createElement('span');
     offline.className = 'tapo-offline';
-    offline.textContent = 'Offline';
+    offline.textContent = d.status === 'refused' ? 'Locked' : 'Offline';
+    offline.title = d.status === 'refused'
+      ? `Device refused login (HTTP 403)${d.error ? ' — ' + d.error : ''}`
+      : (d.error || 'Unreachable');
     row.append(offline);
     return row;
   }
@@ -837,4 +840,4 @@ async function loadTapo() {
 }
 
 loadTapo();
-setInterval(loadTapo, 30_000);
+setInterval(loadTapo, 60_000);
