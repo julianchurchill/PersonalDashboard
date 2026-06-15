@@ -6,7 +6,7 @@ import { isConfigured, getAuthUrl, exchangeCode, getStatus } from './resideo.js'
 import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from './octopus.js';
 import { getCurrentWeather, isWeatherConfigured } from './weather.js';
 import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
-import { getDecoStatus, isDecoConfigured, invalidateDecoSession } from './deco.js';
+import { getDecoStatus, isDecoConfigured, invalidateDecoSession, getDecoUrl } from './deco.js';
 import { getSnapshot, isCctvConfigured } from './cctv.js';
 import { isCalendarConfigured, getCalendarAuthUrl, exchangeCalendarCode, getCalendarEvents } from './calendar.js';
 
@@ -98,10 +98,10 @@ app.get('/api/deco', async (_req, res) => {
   if (!isDecoConfigured()) return res.json({ status: 'unconfigured' });
   try {
     const data = await getDecoStatus();
-    res.json({ status: 'ok', ...data });
+    res.json({ status: 'ok', url: getDecoUrl(), ...data });
   } catch (err) {
     invalidateDecoSession();
-    res.status(503).json({ status: 'error', message: err.message });
+    res.status(503).json({ status: 'error', url: getDecoUrl(), message: err.message });
   }
 });
 
