@@ -101,6 +101,9 @@ function renderCalendar(data) {
     return;
   }
 
+  el.classList.add('calendar-clickable');
+  el.onclick = () => window.open('https://calendar.google.com/calendar/', '_blank');
+
   const title = document.createElement('div');
   title.className = 'calendar-title';
   title.textContent = `📅 ${data.calendarName || 'Calendar'}`;
