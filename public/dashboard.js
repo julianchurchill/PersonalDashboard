@@ -70,6 +70,83 @@ async function loadWeather() {
 loadWeather();
 setInterval(loadWeather, 30 * 60 * 1000);
 
+function formatEventWhen(start, allDay) {
+  if (!start) return '';
+  const d = new Date(start);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const day = sameDay
+    ? 'Today'
+    : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  if (allDay) return `${day} · All day`;
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `${day} ${time}`;
+}
+
+function renderCalendar(data) {
+  const el = document.getElementById('calendar');
+  el.replaceChildren();
+  el.onclick = null;
+  el.classList.remove('calendar-clickable');
+
+  if (data.status === 'unconfigured' || data.status === 'error') return;
+
+  if (data.status === 'unauthorized') {
+    const link = document.createElement('div');
+    link.className = 'calendar-title';
+    link.textContent = '📅 Connect calendar';
+    el.append(link);
+    el.classList.add('calendar-clickable');
+    el.onclick = () => window.open('/auth/google', '_blank');
+    return;
+  }
+
+  el.classList.add('calendar-clickable');
+  el.onclick = () => window.open('https://calendar.google.com/calendar/', '_blank');
+
+  const title = document.createElement('div');
+  title.className = 'calendar-title';
+  title.textContent = `📅 ${data.calendarName || 'Calendar'}`;
+  el.append(title);
+
+  const events = data.events ?? [];
+  if (!events.length) {
+    const none = document.createElement('div');
+    none.className = 'calendar-empty';
+    none.textContent = 'No upcoming events';
+    el.append(none);
+    return;
+  }
+
+  for (const ev of events) {
+    const row = document.createElement('div');
+    row.className = 'calendar-event';
+
+    const name = document.createElement('span');
+    name.className = 'calendar-event-name';
+    name.textContent = ev.name;
+
+    const when = document.createElement('span');
+    when.className = 'calendar-event-when';
+    when.textContent = formatEventWhen(ev.start, ev.allDay);
+
+    row.append(name, when);
+    el.append(row);
+  }
+}
+
+async function loadCalendar() {
+  try {
+    const res = await fetch('/api/calendar');
+    renderCalendar(await res.json());
+  } catch {
+    document.getElementById('calendar').replaceChildren();
+  }
+}
+
+loadCalendar();
+setInterval(loadCalendar, 5 * 60 * 1000);
+
 async function loadVersion() {
   const res = await fetch('/api/version');
   const { version, datetime, hash } = await res.json();

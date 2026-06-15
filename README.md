@@ -39,7 +39,6 @@ npm run dev    # restarts automatically when server.js changes
 - Solar generation (Solis?)
 - Tapo bulbs and sockets
 - Google Keep notes
-- Google Calendar
 - OurGroceries shopping list?
 
 ## Done
@@ -51,6 +50,7 @@ npm run dev    # restarts automatically when server.js changes
 - TP-Link Deco network widget (live speeds, top 5 users by bandwidth)
 - myenergi widget (solar generation, grid import/export, Zappi charging status)
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
+- Google Calendar header display (next 3 events from the family calendar, with name and date/time)
 
 ## Dev Containers
 
@@ -169,6 +169,30 @@ CCTV_RTSP_PORT=554
 ```
 
 The widget requires an RTSP-capable DVR — it does not rely on an HTTP snapshot endpoint. If either `CCTV_IP` or `CCTV_PASSWORD` is not set the widget shows an unconfigured message.
+
+### Google Calendar header display
+
+Shows the next 3 upcoming events from your family calendar in the header (event name plus date/time), refreshed every 5 minutes. It uses the [Google Calendar API](https://developers.google.com/calendar) via OAuth2, read-only. Setup is a one-time process:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/) create a project, enable the **Google Calendar API**, and configure the OAuth consent screen (External, with your Google account added as a test user). The only scope needed is `.../auth/calendar.readonly`.
+2. Create an **OAuth client ID** of type *Web application* with the authorised redirect URI `http://localhost:3000/auth/google/callback`.
+3. Add the client credentials to `.devcontainer/.env.devcontainer`:
+
+   ```env
+   GOOGLE_CLIENT_ID=your_client_id
+   GOOGLE_CLIENT_SECRET=your_client_secret
+   ```
+
+4. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in the same Docker volume (`resideo-data`) as the Resideo tokens, so they survive container restarts.
+5. Open the dashboard at `http://localhost:3000`, click **📅 Connect calendar** in the header, and log in with your Google account to approve read-only calendar access.
+
+By default the dashboard picks the calendar whose name contains "family" (falling back to your primary calendar). To target a specific calendar, set its ID explicitly:
+
+```env
+GOOGLE_CALENDAR_ID=abc123@group.calendar.google.com
+```
+
+The calendar ID is found under **Settings → \<calendar name\> → Integrate calendar → Calendar ID** in Google Calendar. If `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are not set the header display stays empty.
 
 ### GitHub access
 

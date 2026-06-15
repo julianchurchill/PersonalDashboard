@@ -2,17 +2,21 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const TOKEN_FILE = join(dirname(fileURLToPath(import.meta.url)), 'data', 'tokens.json');
+const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), 'data');
 
-export function loadTokens() {
+function tokenFile(name) {
+  return join(DATA_DIR, `${name}.json`);
+}
+
+export function loadTokens(name = 'tokens') {
   try {
-    return JSON.parse(readFileSync(TOKEN_FILE, 'utf8'));
+    return JSON.parse(readFileSync(tokenFile(name), 'utf8'));
   } catch {
     return null;
   }
 }
 
-export function saveTokens(tokens) {
-  mkdirSync(dirname(TOKEN_FILE), { recursive: true });
-  writeFileSync(TOKEN_FILE, JSON.stringify({ ...tokens, savedAt: Date.now() }));
+export function saveTokens(tokens, name = 'tokens') {
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(tokenFile(name), JSON.stringify({ ...tokens, savedAt: Date.now() }));
 }
