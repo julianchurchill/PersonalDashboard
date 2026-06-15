@@ -196,7 +196,7 @@ The calendar ID is found under **Settings → \<calendar name\> → Integrate ca
 
 ### Tapo smart plugs & lights widget
 
-Lists your TP-Link Tapo plugs and lights with their current on/off state, and lets you toggle each one on or off directly from the dashboard. Refreshes every 30 seconds. Devices are controlled **locally** over your LAN (no cloud round-trip), though your TP-Link account credentials are still required for the device handshake.
+Lists your TP-Link Tapo plugs and lights with their current on/off state, and lets you toggle each one on or off directly from the dashboard. Refreshes every 60 seconds. Devices are controlled **locally** over your LAN (no cloud round-trip), though your TP-Link account credentials are still required for the device handshake.
 
 **Config needed:**
 
@@ -213,7 +213,21 @@ TAPO_DEVICES=192.168.0.50,192.168.0.51
   TAPO_DEVICES=Living Room Lamp=192.168.0.50,Office Plug=192.168.0.51
   ```
 
-A device that can't be reached is shown as **Offline** (each device call is capped at 6 seconds so one offline device doesn't hold up the rest). If `TAPO_EMAIL`, `TAPO_PASSWORD`, or `TAPO_DEVICES` is not set the widget shows an unconfigured message.
+A device that can't be reached is shown as **Offline**; a device that refuses the login handshake (HTTP 403) is shown as **Locked** — see the protocol note below. Each device call is capped at 6 seconds so one slow device doesn't hold up the rest, and after a failed login the dashboard backs off (1 → 15 min) rather than re-hammering the device on every poll. If `TAPO_EMAIL`, `TAPO_PASSWORD`, or `TAPO_DEVICES` is not set the widget shows an unconfigured message.
+
+#### Newer firmware: enable "Third-Party Compatibility"
+
+The widget talks to devices using TP-Link's **KLAP** local protocol. Recent Tapo firmware (e.g. L535 bulbs on `1.4.2 Build 260203`) defaults to a **newer local protocol, TPAP**, which currently has **no open-source implementation** — not in this dashboard, nor in [python-kasa](https://github.com/python-kasa/python-kasa) (the reference library that everything else follows). A device speaking TPAP rejects the KLAP handshake with **HTTP 403**, so the widget shows it as **Locked**, even though it is reachable, owned by your account, and works in the phone app.
+
+The fix is to make the device fall back to KLAP:
+
+> Tapo app → **Me** (bottom-right) → **Tapo Lab** → **Third-Party Compatibility** → turn **ON**
+
+This is an account-wide setting (not per-device), so enabling it once covers all your devices. After enabling it, redeploy / reload and the previously **Locked** devices should come up as controllable.
+
+To check which protocol a device is using, query its local discovery service over UDP port `20002` — the JSON response's `mgt_encrypt_schm.encrypt_type` is `KLAP` (supported) or `TPAP` (not yet supported).
+
+**Future TPAP support:** TPAP is a proprietary, undocumented handshake (PAKE + device/node certificates), so it can't be implemented reliably by reverse-engineering. If TP-Link publishes a specification — or if support lands in python-kasa / a maintained Node library — the widget could be updated to speak TPAP directly, removing the need for the Third-Party Compatibility workaround. Until then, keep that setting enabled.
 
 ### GitHub access
 
