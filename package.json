@@ -1,16 +1,17 @@
 {
   "name": "personal-dashboard",
-  "version": "1.5.2",
+  "version": "1.6.1",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "docker:deploy": "docker build -t personal-dashboard --build-arg GIT_HASH=$(git rev-parse --short HEAD) --build-arg GIT_DATE=$(git log -1 --format=%cd --date=format:%Y-%m-%dT%H:%M%z) . && (docker rm -f dashboard 2>/dev/null || true) && docker run -d --name dashboard --restart unless-stopped -p 3000:3000 --env RESIDEO_CLIENT_ID --env RESIDEO_CLIENT_SECRET --env OCTOPUS_API_KEY --env OCTOPUS_ACCOUNT_NUMBER --env WEATHER_LOCATION --env MYENERGI_SERIAL --env MYENERGI_API_KEY --env DECO_IP --env DECO_PASSWORD --env CCTV_IP --env CCTV_PASSWORD --env GOOGLE_CLIENT_ID --env GOOGLE_CLIENT_SECRET --env GOOGLE_CALENDAR_ID -v resideo-data:/app/data personal-dashboard",
+    "docker:deploy": "docker build -t personal-dashboard --build-arg GIT_HASH=$(git rev-parse --short HEAD) --build-arg GIT_DATE=$(git log -1 --format=%cd --date=format:%Y-%m-%dT%H:%M%z) . && (docker rm -f dashboard 2>/dev/null || true) && docker run -d --name dashboard --restart unless-stopped -p 3000:3000 --env RESIDEO_CLIENT_ID --env RESIDEO_CLIENT_SECRET --env OCTOPUS_API_KEY --env OCTOPUS_ACCOUNT_NUMBER --env WEATHER_LOCATION --env MYENERGI_SERIAL --env MYENERGI_API_KEY --env DECO_IP --env DECO_PASSWORD --env CCTV_IP --env CCTV_PASSWORD --env GOOGLE_CLIENT_ID --env GOOGLE_CLIENT_SECRET --env GOOGLE_CALENDAR_ID --env TAPO_EMAIL --env TAPO_PASSWORD --env TAPO_DEVICES -v resideo-data:/app/data personal-dashboard",
     "docker:logs": "docker logs dashboard",
     "docker:stop": "docker stop dashboard",
     "docker:start": "docker start dashboard"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "tp-link-tapo-connect": "^2.0.15"
   }
 }
