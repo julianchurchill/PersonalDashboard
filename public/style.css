@@ -43,6 +43,59 @@ header {
   gap: 2.5rem;
 }
 
+#calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+  max-width: 28rem;
+  margin: 0 2rem;
+  line-height: 1.1;
+}
+
+#calendar.calendar-clickable {
+  cursor: pointer;
+}
+
+#calendar.calendar-clickable:hover {
+  opacity: 0.75;
+}
+
+.calendar-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.calendar-empty {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.calendar-event {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.82rem;
+}
+
+.calendar-event-name {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-event-when {
+  color: var(--accent);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 #clock {
   text-align: right;
 }

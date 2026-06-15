@@ -8,6 +8,7 @@ import { getCurrentWeather, isWeatherConfigured } from './weather.js';
 import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
 import { getDecoStatus, isDecoConfigured, invalidateDecoSession } from './deco.js';
 import { getSnapshot, isCctvConfigured } from './cctv.js';
+import { isCalendarConfigured, getCalendarAuthUrl, exchangeCalendarCode, getCalendarEvents } from './calendar.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -101,6 +102,37 @@ app.get('/api/deco', async (_req, res) => {
   } catch (err) {
     invalidateDecoSession();
     res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/calendar', async (_req, res) => {
+  if (!isCalendarConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const data = await getCalendarEvents();
+    if (!data) return res.json({ status: 'unauthorized' });
+    res.json({ status: 'ok', ...data });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/auth/google', (_req, res) => {
+  if (!isCalendarConfigured()) return res.status(500).send('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are not set.');
+  res.redirect(getCalendarAuthUrl());
+});
+
+app.get('/auth/google/callback', async (req, res) => {
+  const { code, error } = req.query;
+  if (error || !code) {
+    console.error('Google auth callback error:', error ?? 'no code received');
+    return res.status(400).send('Authorisation failed. Check server logs for details.');
+  }
+  try {
+    await exchangeCalendarCode(code);
+    res.redirect('/');
+  } catch (err) {
+    console.error('Google token exchange failed:', err.message);
+    res.status(500).send('Token exchange failed. Check server logs for details.');
   }
 });
 
