@@ -10,6 +10,7 @@ import { getDecoStatus, isDecoConfigured, invalidateDecoSession, getDecoUrl } fr
 import { getSnapshot, isCctvConfigured } from './cctv.js';
 import { isCalendarConfigured, getCalendarAuthUrl, exchangeCalendarCode, getCalendarEvents } from './calendar.js';
 import { isTapoConfigured, getTapoStatus, setTapoState } from './tapo.js';
+import { isThermoproConfigured, getThermoproStatus, getThermoproError } from './thermopro.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -125,6 +126,16 @@ app.post('/api/tapo/:ip/:action', async (req, res) => {
   try {
     await setTapoState(ip, action === 'on');
     res.json({ status: 'ok' });
+  } catch (err) {
+    res.status(503).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/thermopro', async (_req, res) => {
+  if (!isThermoproConfigured()) return res.json({ status: 'unconfigured' });
+  try {
+    const devices = await getThermoproStatus();
+    res.json({ status: 'ok', devices, bleError: getThermoproError() });
   } catch (err) {
     res.status(503).json({ status: 'error', message: err.message });
   }

@@ -51,6 +51,7 @@ npm run dev    # restarts automatically when server.js changes
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
 - Google Calendar header display (next 3 events from the family calendar, with name and date/time)
 - Tapo smart plugs &amp; lights widget (shows on/off state, toggle each device on or off)
+- Indoor Climate widget (temperature &amp; humidity from ThermoPro TP357/TP358/TP359 Bluetooth monitors)
 
 ## Dev Containers
 
@@ -228,6 +229,30 @@ This is an account-wide setting (not per-device), so enabling it once covers all
 To check which protocol a device is using, query its local discovery service over UDP port `20002` — the JSON response's `mgt_encrypt_schm.encrypt_type` is `KLAP` (supported) or `TPAP` (not yet supported).
 
 **Future TPAP support:** TPAP is a proprietary, undocumented handshake (PAKE + device/node certificates), so it can't be implemented reliably by reverse-engineering. If TP-Link publishes a specification — or if support lands in python-kasa / a maintained Node library — the widget could be updated to speak TPAP directly, removing the need for the Third-Party Compatibility workaround. Until then, keep that setting enabled.
+
+### Indoor Climate widget (ThermoPro Bluetooth monitors)
+
+Shows the current temperature and humidity from one or more **ThermoPro TP357 / TP358 / TP359** Bluetooth monitors, refreshed every 30 seconds. These models continuously **broadcast** their readings in the BLE advertisement, so the dashboard reads them with a passive scan — no pairing, no connection, and the monitors keep working with the ThermoPro app at the same time.
+
+**Config needed:**
+
+```env
+THERMOPRO_DEVICES=Bedroom=ab:cd:ef:01:23:45,Garage=ab:cd:ef:01:23:46
+```
+
+- `THERMOPRO_DEVICES` is a comma-separated list of your monitors' **Bluetooth MAC addresses**, either bare (`ab:cd:ef:01:23:45`) or labelled (`Label=MAC`). MACs are matched case-insensitively.
+- To find a monitor's MAC: deploy with `THERMOPRO_DEVICES` set to any placeholder, then check the logs (`npm run docker:logs`) — every ThermoPro device the host sees is logged once as `ThermoPro discovered: TP357 (xxxx) ab:cd:ef:01:23:45 — 21.4°C 55%`. Alternatively use `bluetoothctl scan on` on the host and look for `TP3xx` names. Copy the MACs into `THERMOPRO_DEVICES` and redeploy.
+- A monitor whose last reading is older than 10 minutes (out of range, or battery dead) is shown as **No signal**. If the host has no working Bluetooth adapter the widget shows the underlying reason instead. If `THERMOPRO_DEVICES` is not set the widget shows an unconfigured message.
+
+#### Host Bluetooth requirement
+
+Unlike the network/cloud widgets, this one needs a **Bluetooth LE adapter on the machine running the dashboard**, within range (~10 m) of the monitors. Bluetooth is read via [noble](https://github.com/abandonware/noble)'s raw HCI socket, so the container is run with host networking and the `NET_ADMIN` / `NET_RAW` capabilities — `npm run docker:deploy` already includes these flags. Notes:
+
+- The Docker image compiles noble's native bindings at build time (build toolchain added then removed) and ships `eudev-libs` for the runtime.
+- Because the container uses `--network host`, the dashboard is reachable on the host's port 3000 directly (the previous `-p 3000:3000` mapping is no longer needed).
+- On the host, make sure the adapter is up (`hciconfig hci0 up`) and not exclusively claimed by another BLE consumer.
+
+> **Note:** the BLE advertisement decode (temperature `int16` little-endian ÷ 10, humidity as a byte) follows the documented TP357/TP359 format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway. If your specific units report different values, compare against the per-device line in the logs and adjust the offsets in `thermopro.js`.
 
 ### GitHub access
 

@@ -841,3 +841,102 @@ async function loadTapo() {
 
 loadTapo();
 setInterval(loadTapo, 60_000);
+
+function makeThermoproRow(d) {
+  const row = document.createElement('div');
+  row.className = 'thermopro-row';
+
+  const icon = document.createElement('span');
+  icon.className = 'thermopro-icon';
+  icon.textContent = '🌡️';
+
+  const name = document.createElement('span');
+  name.className = 'thermopro-name';
+  name.textContent = d.name;
+
+  row.append(icon, name);
+
+  if (!d.reachable) {
+    const offline = document.createElement('span');
+    offline.className = 'thermopro-offline';
+    offline.textContent = 'No signal';
+    offline.title = d.lastSeen
+      ? `Last seen ${new Date(d.lastSeen).toLocaleTimeString('en-GB')}`
+      : 'Not yet seen — check the device is in range';
+    row.append(offline);
+    return row;
+  }
+
+  const readings = document.createElement('span');
+  readings.className = 'thermopro-readings';
+
+  const temp = document.createElement('span');
+  temp.className = 'thermopro-temp';
+  temp.textContent = `${d.tempC.toFixed(1)}°C`;
+
+  const sep = document.createElement('span');
+  sep.className = 'thermopro-sep';
+  sep.textContent = '·';
+
+  const hum = document.createElement('span');
+  hum.className = 'thermopro-hum';
+  hum.textContent = `${d.humidity}%`;
+
+  readings.append(temp, sep, hum);
+  row.append(readings);
+  return row;
+}
+
+function renderThermopro(data) {
+  const body  = document.getElementById('thermopro-body');
+  const badge = document.getElementById('thermopro-badge');
+
+  if (data.status === 'unconfigured') {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', 'THERMOPRO_DEVICES not set.');
+    return;
+  }
+
+  if (data.status === 'error') {
+    badge.textContent = 'Error';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const devices = data.devices ?? [];
+  if (!devices.length) {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-loading', 'No sensors configured.');
+    return;
+  }
+
+  // If Bluetooth itself is unavailable, every sensor will read offline — show
+  // the underlying reason instead of a wall of "No signal" rows.
+  if (data.bleError && devices.every(d => !d.reachable)) {
+    badge.textContent = 'No Bluetooth';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.bleError);
+    return;
+  }
+
+  const reachable = devices.filter(d => d.reachable).length;
+  badge.textContent = `${reachable}/${devices.length}`;
+  badge.className = 'widget-badge' + (reachable ? ' active' : '');
+
+  body.replaceChildren(...devices.map(makeThermoproRow));
+}
+
+async function loadThermopro() {
+  try {
+    const res = await fetch('/api/thermopro');
+    renderThermopro(await res.json());
+  } catch {
+    setBodyText(document.getElementById('thermopro-body'), 'widget-error', 'Could not reach ThermoPro API.');
+  }
+}
+
+loadThermopro();
+setInterval(loadThermopro, 30_000);

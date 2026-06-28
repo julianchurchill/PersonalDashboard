@@ -567,3 +567,55 @@ footer {
   opacity: 0.5;
   pointer-events: none;
 }
+
+/* --- Indoor Climate (ThermoPro) Widget --- */
+
+.thermopro-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+
+.thermopro-row + .thermopro-row {
+  border-top: 1px solid var(--border);
+}
+
+.thermopro-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.thermopro-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.thermopro-readings {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.thermopro-temp {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.thermopro-sep {
+  margin: 0 0.35rem;
+  color: var(--border);
+}
+
+.thermopro-offline {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
