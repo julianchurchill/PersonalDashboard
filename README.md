@@ -270,11 +270,13 @@ esp32_ble_tracker:
     - mac_address: 10:76:36:18:12:DB        # ← Ollie's monitor
       then:
         - lambda: |-
+            // ESPHome puts the 2-byte company id in .uuid, so .data starts at
+            // the temperature: [0..1] temp int16 LE / 10, [2] humidity %.
             for (auto data : x.get_manufacturer_datas()) {
-              if (data.data.size() < 5) continue;
-              int16_t t = data.data[2] | (data.data[3] << 8);
+              if (data.data.size() < 3) continue;
+              int16_t t = data.data[0] | (data.data[1] << 8);
               id(ollie_temp).publish_state(t / 10.0);
-              id(ollie_hum).publish_state(data.data[4]);
+              id(ollie_hum).publish_state(data.data[2]);
             }
 
 sensor:
@@ -292,7 +294,7 @@ sensor:
 
 ESPHome turns each sensor `name` into the URL's `<id>` by lower-casing and replacing spaces with underscores (`"Ollie Temperature"` → `ollie_temperature`). Use those URLs in `THERMOPRO_SENSORS`. Verify a sensor directly in a browser at `http://<esp32-ip>/sensor/ollie_temperature` before deploying. If the decoded values don't match the monitor's own display, adjust the byte offsets in the lambda.
 
-> **Note:** the BLE advertisement decode (temperature `int16` little-endian ÷ 10, humidity as a byte) follows the documented TP357/TP359 format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway. If your specific units report different values, compare against the per-device line in the logs and adjust the offsets in `thermopro.js`.
+> **Note:** the BLE advertisement decode (temperature `int16` little-endian ÷ 10, humidity as a byte) follows the documented TP357/TP359 format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway. If your units report different values, adjust the byte offsets in the lambda. (The offsets above are relative to ESPHome's `.data`, which already excludes the 2-byte company id — raw decoders that include it use offsets 2 higher.)
 
 ### GitHub access
 
