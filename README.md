@@ -51,7 +51,7 @@ npm run dev    # restarts automatically when server.js changes
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
 - Google Calendar header display (next 3 events from the family calendar, with name and date/time)
 - Tapo smart plugs &amp; lights widget (shows on/off state, toggle each device on or off)
-- Indoor Climate widget (temperature &amp; humidity from ThermoPro TP357/TP358/TP359 Bluetooth monitors)
+- Indoor Climate widget (temperature &amp; humidity from ThermoPro TP357/TP358/TP359 monitors via an ESP32 BLE proxy)
 
 ## Dev Containers
 
@@ -232,25 +232,65 @@ To check which protocol a device is using, query its local discovery service ove
 
 ### Indoor Climate widget (ThermoPro Bluetooth monitors)
 
-Shows the current temperature and humidity from one or more **ThermoPro TP357 / TP358 / TP359** Bluetooth monitors, refreshed every 30 seconds. These models continuously **broadcast** their readings in the BLE advertisement, so the dashboard reads them with a passive scan — no pairing, no connection, and the monitors keep working with the ThermoPro app at the same time.
+Shows the current temperature and humidity from one or more **ThermoPro TP357 / TP358 / TP359** Bluetooth monitors, refreshed every 30 seconds.
+
+These monitors broadcast their readings over Bluetooth LE (BLE), which has a short range (~10 m) and needs a Bluetooth adapter. The dashboard, however, runs in Docker Desktop, whose Linux VM has **no access to the PC's Bluetooth adapter** — so the dashboard can't read the monitors directly. Instead, a cheap **ESP32 running [ESPHome](https://esphome.io)** sits near the sensors, decodes their BLE broadcasts, and exposes each value over its built-in HTTP web server. The dashboard simply polls those JSON endpoints, exactly like the other widgets. Spread-out sensors may need more than one ESP32 (the widget can poll several).
 
 **Config needed:**
 
 ```env
-THERMOPRO_DEVICES=Bedroom=ab:cd:ef:01:23:45,Garage=ab:cd:ef:01:23:46
+THERMOPRO_SENSORS=Ollie=http://192.168.0.30/sensor/ollie_temperature;http://192.168.0.30/sensor/ollie_humidity,Study=http://192.168.0.31/sensor/study_temperature;http://192.168.0.31/sensor/study_humidity
 ```
 
-- `THERMOPRO_DEVICES` is a comma-separated list of your monitors' **Bluetooth MAC addresses**, either bare (`ab:cd:ef:01:23:45`) or labelled (`Label=MAC`). MACs are matched case-insensitively.
-- To find a monitor's MAC: deploy with `THERMOPRO_DEVICES` set to any placeholder, then check the logs (`npm run docker:logs`) — every ThermoPro device the host sees is logged once as `ThermoPro discovered: TP357 (xxxx) ab:cd:ef:01:23:45 — 21.4°C 55%`. Alternatively use `bluetoothctl scan on` on the host and look for `TP3xx` names. Copy the MACs into `THERMOPRO_DEVICES` and redeploy.
-- A monitor whose last reading is older than 10 minutes (out of range, or battery dead) is shown as **No signal**. If the host has no working Bluetooth adapter the widget shows the underlying reason instead. If `THERMOPRO_DEVICES` is not set the widget shows an unconfigured message.
+- `THERMOPRO_SENSORS` is a comma-separated list of sensors. Each entry is `Label=<temperatureUrl>;<humidityUrl>`, where the two URLs are the ESPHome REST endpoints for that sensor (the humidity URL is optional — omit the `;…` for a temperature-only sensor).
+- The ESPHome web server responds to `GET /sensor/<id>` with `{"id":"…","value":21.4,"state":"21.4 °C"}`; the dashboard reads the numeric `value`.
+- A sensor whose endpoint is unreachable, or whose value reads `nan` (the ESP32 hasn't heard from it — out of range or battery dead), is shown as **No signal**. If `THERMOPRO_SENSORS` is not set the widget shows an unconfigured message.
 
-#### Host Bluetooth requirement
+#### ESP32 BLE proxy setup (ESPHome)
 
-Unlike the network/cloud widgets, this one needs a **Bluetooth LE adapter on the machine running the dashboard**, within range (~10 m) of the monitors. Bluetooth is read via [noble](https://github.com/abandonware/noble)'s raw HCI socket, so the container is run with host networking and the `NET_ADMIN` / `NET_RAW` capabilities — `npm run docker:deploy` already includes these flags. Notes:
+Flash an ESP32 with ESPHome. There's no built-in ThermoPro platform, so an `esp32_ble_tracker` lambda decodes each monitor's advertisement (temperature: `int16` little-endian ÷ 10; humidity: a single byte — the format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway) into template sensors, which `web_server` then exposes over HTTP.
 
-- The Docker image compiles noble's native bindings at build time (build toolchain added then removed) and ships `eudev-libs` for the runtime.
-- Because the container uses `--network host`, the dashboard is reachable on the host's port 3000 directly (the previous `-p 3000:3000` mapping is no longer needed).
-- On the host, make sure the adapter is up (`hciconfig hci0 up`) and not exclusively claimed by another BLE consumer.
+First find each monitor's MAC (ThermoPro app, or `bluetoothctl scan on` on any Linux machine — look for `TP3xx` names). Then, for each monitor, add a block like this (repeat with a unique name/MAC per sensor):
+
+```yaml
+esphome:
+  name: thermopro-proxy
+esp32:
+  board: esp32dev
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+web_server:        # serves /sensor/<id> as JSON for the dashboard to poll
+  port: 80
+
+esp32_ble_tracker:
+  on_ble_advertise:
+    - mac_address: 10:76:36:18:12:DB        # ← Ollie's monitor
+      then:
+        - lambda: |-
+            for (auto data : x.get_manufacturer_datas()) {
+              if (data.data.size() < 5) continue;
+              int16_t t = data.data[2] | (data.data[3] << 8);
+              id(ollie_temp).publish_state(t / 10.0);
+              id(ollie_hum).publish_state(data.data[4]);
+            }
+
+sensor:
+  - platform: template
+    name: "Ollie Temperature"      # → object_id ollie_temperature → /sensor/ollie_temperature
+    id: ollie_temp
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+  - platform: template
+    name: "Ollie Humidity"         # → /sensor/ollie_humidity
+    id: ollie_hum
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+```
+
+ESPHome turns each sensor `name` into the URL's `<id>` by lower-casing and replacing spaces with underscores (`"Ollie Temperature"` → `ollie_temperature`). Use those URLs in `THERMOPRO_SENSORS`. Verify a sensor directly in a browser at `http://<esp32-ip>/sensor/ollie_temperature` before deploying. If the decoded values don't match the monitor's own display, adjust the byte offsets in the lambda.
 
 > **Note:** the BLE advertisement decode (temperature `int16` little-endian ÷ 10, humidity as a byte) follows the documented TP357/TP359 format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway. If your specific units report different values, compare against the per-device line in the logs and adjust the offsets in `thermopro.js`.
 

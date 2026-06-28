@@ -860,9 +860,7 @@ function makeThermoproRow(d) {
     const offline = document.createElement('span');
     offline.className = 'thermopro-offline';
     offline.textContent = 'No signal';
-    offline.title = d.lastSeen
-      ? `Last seen ${new Date(d.lastSeen).toLocaleTimeString('en-GB')}`
-      : 'Not yet seen — check the device is in range';
+    offline.title = 'No reading from the ESP32 proxy — check the proxy is online and the sensor is in range';
     row.append(offline);
     return row;
   }
@@ -894,7 +892,7 @@ function renderThermopro(data) {
   if (data.status === 'unconfigured') {
     badge.textContent = '';
     badge.className = 'widget-badge';
-    setBodyText(body, 'widget-error', 'THERMOPRO_DEVICES not set.');
+    setBodyText(body, 'widget-error', 'THERMOPRO_SENSORS not set.');
     return;
   }
 
@@ -910,15 +908,6 @@ function renderThermopro(data) {
     badge.textContent = '';
     badge.className = 'widget-badge';
     setBodyText(body, 'widget-loading', 'No sensors configured.');
-    return;
-  }
-
-  // If Bluetooth itself is unavailable, every sensor will read offline — show
-  // the underlying reason instead of a wall of "No signal" rows.
-  if (data.bleError && devices.every(d => !d.reachable)) {
-    badge.textContent = 'No Bluetooth';
-    badge.className = 'widget-badge';
-    setBodyText(body, 'widget-error', data.bleError);
     return;
   }
 

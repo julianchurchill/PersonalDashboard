@@ -1,18 +1,11 @@
 FROM node:20-alpine
 
-# ffmpeg: CCTV snapshots. eudev-libs: runtime dep of noble's HCI socket binding
-# (BLE access for the ThermoPro widget).
-RUN apk add --no-cache ffmpeg eudev-libs
+RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
 COPY package*.json ./
-
-# noble's native bindings (@abandonware/bluetooth-hci-socket) are compiled from
-# source on Alpine, so add the build toolchain just for the install then drop it.
-RUN apk add --no-cache --virtual .build-deps python3 make g++ linux-headers eudev-dev \
-  && npm ci --omit=dev \
-  && apk del .build-deps
+RUN npm ci --omit=dev
 
 COPY *.js ./
 COPY public/ ./public/

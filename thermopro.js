@@ -1,133 +1,72 @@
-// ThermoPro TP357/TP358/TP359 Bluetooth temperature & humidity monitors.
+// ThermoPro TP357/TP358/TP359 temperature & humidity monitors, read via an
+// ESP32 BLE proxy.
 //
-// These models broadcast their readings in the BLE advertisement (manufacturer
-// data) — no pairing or connection is needed. We passively scan with noble and
-// keep the latest reading per device in memory, then expose configured devices
-// via getThermoproStatus(). This mirrors the CCTV widget: a background loop
-// gathers data, the HTTP route just reads the cache.
+// The monitors broadcast their readings over Bluetooth LE, but the dashboard
+// runs in Docker (Docker Desktop) with no access to a Bluetooth adapter. So a
+// cheap ESP32 running ESPHome sits near the sensors, decodes their broadcasts,
+// and exposes each value over its built-in HTTP web server. The dashboard just
+// polls those JSON endpoints — same as every other widget. See the README for
+// the ESPHome configuration that produces these endpoints.
 //
-// THERMOPRO_DEVICES is a comma-separated list, each entry either a bare MAC
-// address (the BLE local name is used as the label) or "Label=MAC", e.g.
-//   THERMOPRO_DEVICES=Bedroom=ab:cd:ef:01:23:45,Garage=ab:cd:ef:01:23:46
+// THERMOPRO_SENSORS is a comma-separated list of sensors, each:
+//   Label=<temperatureUrl>;<humidityUrl>
+// where the two URLs are ESPHome REST endpoints, e.g.
+//   Ollie=http://192.168.0.30/sensor/ollie_temperature;http://192.168.0.30/sensor/ollie_humidity
+// The humidity URL is optional (omit the ";..." for a temperature-only sensor).
 
-const STALE_MS = 10 * 60_000;            // a reading older than this is "offline"
+const OP_TIMEOUT_MS = 4000;              // cap each HTTP read so one slow ESP32 can't stall the widget
 
-function normaliseMac(mac) {
-  return (mac ?? '').trim().toLowerCase();
-}
-
-function parseDevices() {
-  return (process.env.THERMOPRO_DEVICES ?? '')
+function parseSensors() {
+  return (process.env.THERMOPRO_SENSORS ?? '')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean)
     .map(entry => {
       const eq = entry.indexOf('=');
-      return eq === -1
-        ? { label: null, mac: normaliseMac(entry) }
-        : { label: entry.slice(0, eq).trim(), mac: normaliseMac(entry.slice(eq + 1)) };
-    });
+      const label = eq === -1 ? null : entry.slice(0, eq).trim();
+      const urls = (eq === -1 ? entry : entry.slice(eq + 1)).trim();
+      const [tempUrl, humUrl] = urls.split(';').map(u => u.trim());
+      return { label: label || tempUrl, tempUrl, humUrl: humUrl || null };
+    })
+    .filter(s => s.tempUrl);
 }
 
 export function isThermoproConfigured() {
-  return !!process.env.THERMOPRO_DEVICES;
+  return !!process.env.THERMOPRO_SENSORS;
 }
 
-// mac -> { tempC, humidity, rssi, lastSeen }
-const readings = new Map();
-
-// If the Bluetooth stack can't start (no adapter, missing permissions, noble
-// failed to load) we record it here so the widget can show a clear reason
-// rather than every device silently appearing offline forever.
-let bleError = null;
-
-export function getThermoproError() {
-  return bleError;
-}
-
-// TP357/TP358/TP359 advertisement manufacturer data layout (bytes):
-//   [0..1] company id   [2..3] temperature, int16 LE, /10 (°C)   [4] humidity %
-// Matches the Theengs / OpenMQTTGateway "TP357_TP359" decoder.
-function decode(manufacturerData) {
-  if (!manufacturerData || manufacturerData.length < 5) return null;
-  const tempC = manufacturerData.readInt16LE(2) / 10;
-  const humidity = manufacturerData.readUInt8(4);
-  // Sanity-check the decoded values so a non-ThermoPro broadcaster that happens
-  // to match our heuristics can't inject nonsense readings.
-  if (tempC < -40 || tempC > 85 || humidity > 100) return null;
-  return { tempC, humidity };
-}
-
-function looksLikeThermopro(peripheral) {
-  const name = peripheral.advertisement?.localName ?? '';
-  return /^TP3\d\d/i.test(name);
-}
-
-const loggedDiscoveries = new Set();
-
-function onDiscover(peripheral) {
-  if (!looksLikeThermopro(peripheral)) return;
-  const decoded = decode(peripheral.advertisement?.manufacturerData);
-  if (!decoded) return;
-
-  const mac = normaliseMac(peripheral.address);
-  readings.set(mac, { ...decoded, rssi: peripheral.rssi, lastSeen: Date.now() });
-
-  // Log each device once so the MAC can be copied into THERMOPRO_DEVICES.
-  if (!loggedDiscoveries.has(mac)) {
-    loggedDiscoveries.add(mac);
-    const name = peripheral.advertisement?.localName ?? 'TP3xx';
-    console.log(`ThermoPro discovered: ${name} ${mac || '(no address)'} — ` +
-      `${decoded.tempC}°C ${decoded.humidity}%`);
-  }
-}
-
-async function startScanning() {
-  let noble;
+// Fetch one ESPHome REST endpoint and return its numeric value, or null if the
+// endpoint is unreachable or reports a non-numeric state (e.g. "nan" when the
+// underlying sensor hasn't been seen). ESPHome responds with
+//   {"id":"sensor-ollie_temperature","value":21.4,"state":"21.4 °C"}
+async function fetchValue(url) {
+  if (!url) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OP_TIMEOUT_MS);
   try {
-    // Dynamic import so a host without Bluetooth (or noble's native build)
-    // doesn't take down the rest of the dashboard at startup.
-    noble = (await import('@abandonware/noble')).default;
-  } catch (err) {
-    bleError = `Bluetooth unavailable: ${err.message}`;
-    console.error('ThermoPro:', bleError);
-    return;
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const value = Number(data.value);
+    return Number.isFinite(value) ? value : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
+}
 
-  noble.on('stateChange', async state => {
-    if (state === 'poweredOn') {
-      bleError = null;
-      try {
-        // Allow duplicates so repeated broadcasts keep readings fresh.
-        await noble.startScanningAsync([], true);
-      } catch (err) {
-        bleError = `Could not start BLE scan: ${err.message}`;
-        console.error('ThermoPro:', bleError);
-      }
-    } else {
-      bleError = `Bluetooth adapter not ready (state: ${state})`;
-      console.warn('ThermoPro:', bleError);
-    }
-  });
-
-  noble.on('discover', onDiscover);
+async function readSensor({ label, tempUrl, humUrl }) {
+  const [tempC, humidity] = await Promise.all([fetchValue(tempUrl), fetchValue(humUrl)]);
+  return {
+    name: label,
+    // A sensor is "reachable" once we have a temperature; humidity is optional.
+    reachable: tempC != null,
+    tempC,
+    humidity,
+  };
 }
 
 export async function getThermoproStatus() {
-  const now = Date.now();
-  return parseDevices().map(({ label, mac }) => {
-    const r = readings.get(mac);
-    const fresh = r && now - r.lastSeen < STALE_MS;
-    return {
-      mac,
-      name: label || mac,
-      reachable: !!fresh,
-      tempC: fresh ? r.tempC : null,
-      humidity: fresh ? r.humidity : null,
-      rssi: fresh ? r.rssi : null,
-      lastSeen: r?.lastSeen ?? null,
-    };
-  });
+  return Promise.all(parseSensors().map(readSensor));
 }
-
-if (isThermoproConfigured()) startScanning();
