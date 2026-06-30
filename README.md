@@ -239,7 +239,7 @@ These monitors broadcast their readings over Bluetooth LE (BLE), which has a sho
 **Config needed:**
 
 ```env
-THERMOPRO_SENSORS=Ollie=http://192.168.0.30/sensor/ollie_temperature;http://192.168.0.30/sensor/ollie_humidity,Study=http://192.168.0.31/sensor/study_temperature;http://192.168.0.31/sensor/study_humidity
+THERMOPRO_SENSORS=Bedroom=http://192.168.0.30/sensor/bedroom_temperature;http://192.168.0.30/sensor/bedroom_humidity,Study=http://192.168.0.31/sensor/study_temperature;http://192.168.0.31/sensor/study_humidity
 ```
 
 - `THERMOPRO_SENSORS` is a comma-separated list of sensors. Each entry is `Label=<temperatureUrl>;<humidityUrl>`, where the two URLs are the ESPHome REST endpoints for that sensor (the humidity URL is optional — omit the `;…` for a temperature-only sensor).
@@ -267,7 +267,7 @@ web_server:        # serves /sensor/<id> as JSON for the dashboard to poll
 
 esp32_ble_tracker:
   on_ble_advertise:
-    - mac_address: 10:76:36:18:12:DB        # ← Ollie's monitor
+    - mac_address: AB:CD:EF:01:23:45        # ← your monitor's MAC
       then:
         - lambda: |-
             // ESPHome puts the 2-byte company id in .uuid, so .data starts at
@@ -275,24 +275,24 @@ esp32_ble_tracker:
             for (auto data : x.get_manufacturer_datas()) {
               if (data.data.size() < 3) continue;
               int16_t t = data.data[0] | (data.data[1] << 8);
-              id(ollie_temp).publish_state(t / 10.0);
-              id(ollie_hum).publish_state(data.data[2]);
+              id(bedroom_temp).publish_state(t / 10.0);
+              id(bedroom_hum).publish_state(data.data[2]);
             }
 
 sensor:
   - platform: template
-    name: "Ollie Temperature"      # → object_id ollie_temperature → /sensor/ollie_temperature
-    id: ollie_temp
+    name: "Bedroom Temperature"      # → object_id bedroom_temperature → /sensor/bedroom_temperature
+    id: bedroom_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
   - platform: template
-    name: "Ollie Humidity"         # → /sensor/ollie_humidity
-    id: ollie_hum
+    name: "Bedroom Humidity"         # → /sensor/bedroom_humidity
+    id: bedroom_hum
     unit_of_measurement: "%"
     accuracy_decimals: 0
 ```
 
-ESPHome turns each sensor `name` into the URL's `<id>` by lower-casing and replacing spaces with underscores (`"Ollie Temperature"` → `ollie_temperature`). Use those URLs in `THERMOPRO_SENSORS`. Verify a sensor directly in a browser at `http://<esp32-ip>/sensor/ollie_temperature` before deploying. If the decoded values don't match the monitor's own display, adjust the byte offsets in the lambda.
+ESPHome turns each sensor `name` into the URL's `<id>` by lower-casing and replacing spaces with underscores (`"Bedroom Temperature"` → `bedroom_temperature`). Use those URLs in `THERMOPRO_SENSORS`. Verify a sensor directly in a browser at `http://<esp32-ip>/sensor/bedroom_temperature` before deploying. If the decoded values don't match the monitor's own display, adjust the byte offsets in the lambda.
 
 > **Note:** the BLE advertisement decode (temperature `int16` little-endian ÷ 10, humidity as a byte) follows the documented TP357/TP359 format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway. If your units report different values, adjust the byte offsets in the lambda. (The offsets above are relative to ESPHome's `.data`, which already excludes the 2-byte company id — raw decoders that include it use offsets 2 higher.)
 
