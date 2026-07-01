@@ -58,7 +58,16 @@ async function getAccessToken() {
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   });
-  if (!res.ok) throw new Error(`Token refresh failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    // An expired or revoked refresh token comes back as 400 invalid_grant.
+    // That needs the user to re-authorise, so surface it as "unauthorized"
+    // (return null) rather than a hard error — which lets the header show the
+    // re-connect link instead of rendering nothing. Other failures (network,
+    // 5xx) stay as errors so a transient blip isn't mistaken for logout.
+    if (res.status === 400 && body.includes('invalid_grant')) return null;
+    throw new Error(`Token refresh failed: ${res.status}`);
+  }
   const refreshed = await res.json();
   // Google omits refresh_token on refresh — keep the original.
   saveTokens({ ...refreshed, refresh_token: refreshed.refresh_token ?? tokens.refresh_token }, TOKEN_NAME);
