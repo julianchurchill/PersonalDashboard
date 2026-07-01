@@ -841,3 +841,91 @@ async function loadTapo() {
 
 loadTapo();
 setInterval(loadTapo, 60_000);
+
+function makeThermoproRow(d) {
+  const row = document.createElement('div');
+  row.className = 'thermopro-row';
+
+  const icon = document.createElement('span');
+  icon.className = 'thermopro-icon';
+  icon.textContent = '🌡️';
+
+  const name = document.createElement('span');
+  name.className = 'thermopro-name';
+  name.textContent = d.name;
+
+  row.append(icon, name);
+
+  if (!d.reachable) {
+    const offline = document.createElement('span');
+    offline.className = 'thermopro-offline';
+    offline.textContent = 'No signal';
+    offline.title = 'No reading from the ESP32 proxy — check the proxy is online and the sensor is in range';
+    row.append(offline);
+    return row;
+  }
+
+  const readings = document.createElement('span');
+  readings.className = 'thermopro-readings';
+
+  const temp = document.createElement('span');
+  temp.className = 'thermopro-temp';
+  temp.textContent = `${d.tempC.toFixed(1)}°C`;
+
+  const sep = document.createElement('span');
+  sep.className = 'thermopro-sep';
+  sep.textContent = '·';
+
+  const hum = document.createElement('span');
+  hum.className = 'thermopro-hum';
+  hum.textContent = `${d.humidity}%`;
+
+  readings.append(temp, sep, hum);
+  row.append(readings);
+  return row;
+}
+
+function renderThermopro(data) {
+  const body  = document.getElementById('thermopro-body');
+  const badge = document.getElementById('thermopro-badge');
+
+  if (data.status === 'unconfigured') {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', 'THERMOPRO_SENSORS not set.');
+    return;
+  }
+
+  if (data.status === 'error') {
+    badge.textContent = 'Error';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
+    return;
+  }
+
+  const devices = data.devices ?? [];
+  if (!devices.length) {
+    badge.textContent = '';
+    badge.className = 'widget-badge';
+    setBodyText(body, 'widget-loading', 'No sensors configured.');
+    return;
+  }
+
+  const reachable = devices.filter(d => d.reachable).length;
+  badge.textContent = `${reachable}/${devices.length}`;
+  badge.className = 'widget-badge' + (reachable ? ' active' : '');
+
+  body.replaceChildren(...devices.map(makeThermoproRow));
+}
+
+async function loadThermopro() {
+  try {
+    const res = await fetch('/api/thermopro');
+    renderThermopro(await res.json());
+  } catch {
+    setBodyText(document.getElementById('thermopro-body'), 'widget-error', 'Could not reach ThermoPro API.');
+  }
+}
+
+loadThermopro();
+setInterval(loadThermopro, 30_000);

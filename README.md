@@ -51,6 +51,7 @@ npm run dev    # restarts automatically when server.js changes
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
 - Google Calendar header display (next 3 events from the family calendar, with name and date/time)
 - Tapo smart plugs &amp; lights widget (shows on/off state, toggle each device on or off)
+- Climate widget (temperature &amp; humidity from ThermoPro TP357/TP358/TP359 monitors via an ESP32 BLE proxy)
 
 ## Dev Containers
 
@@ -228,6 +229,74 @@ This is an account-wide setting (not per-device), so enabling it once covers all
 To check which protocol a device is using, query its local discovery service over UDP port `20002` — the JSON response's `mgt_encrypt_schm.encrypt_type` is `KLAP` (supported) or `TPAP` (not yet supported).
 
 **Future TPAP support:** TPAP is a proprietary, undocumented handshake (PAKE + device/node certificates), so it can't be implemented reliably by reverse-engineering. If TP-Link publishes a specification — or if support lands in python-kasa / a maintained Node library — the widget could be updated to speak TPAP directly, removing the need for the Third-Party Compatibility workaround. Until then, keep that setting enabled.
+
+### Climate widget (ThermoPro Bluetooth monitors)
+
+Shows the current temperature and humidity from one or more **ThermoPro TP357 / TP358 / TP359** Bluetooth monitors, refreshed every 30 seconds.
+
+These monitors broadcast their readings over Bluetooth LE (BLE), which has a short range (~10 m) and needs a Bluetooth adapter. The dashboard, however, runs in Docker Desktop, whose Linux VM has **no access to the PC's Bluetooth adapter** — so the dashboard can't read the monitors directly. Instead, a cheap **ESP32 running [ESPHome](https://esphome.io)** sits near the sensors, decodes their BLE broadcasts, and exposes each value over its built-in HTTP web server. The dashboard simply polls those JSON endpoints, exactly like the other widgets. Spread-out sensors may need more than one ESP32 (the widget can poll several).
+
+**Config needed:**
+
+```env
+THERMOPRO_SENSORS=Bedroom=http://192.168.0.30/sensor/Bedroom%20Temperature;http://192.168.0.30/sensor/Bedroom%20Humidity,Study=http://192.168.0.31/sensor/Study%20Temperature;http://192.168.0.31/sensor/Study%20Humidity
+```
+
+- `THERMOPRO_SENSORS` is a comma-separated list of sensors. Each entry is `Label=<temperatureUrl>;<humidityUrl>`, where the two URLs are the ESPHome REST endpoints for that sensor (the humidity URL is optional — omit the `;…` for a temperature-only sensor).
+- The ESPHome web server responds to `GET /sensor/<entity name>` with `{"id":"…","value":21.4,"state":"21.4 °C"}`; the dashboard reads the numeric `value`. The URL uses the sensor's **entity name**, so URL-encode spaces as `%20` (e.g. `Bedroom Temperature` → `/sensor/Bedroom%20Temperature`). The older object-id URLs (`/sensor/bedroom_temperature`) still work on current ESPHome but are deprecated and removed in ESPHome 2026.7.0.
+- A sensor whose endpoint is unreachable, or whose value reads `nan` (the ESP32 hasn't heard from it — out of range or battery dead), is shown as **No signal**. If `THERMOPRO_SENSORS` is not set the widget shows an unconfigured message.
+
+#### ESP32 BLE proxy setup (ESPHome)
+
+Flash an ESP32 with ESPHome. There's no built-in ThermoPro platform, so an `esp32_ble_tracker` lambda decodes each monitor's advertisement (temperature: `int16` little-endian ÷ 10; humidity: a single byte — the format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway) into template sensors, which `web_server` then exposes over HTTP.
+
+First find each monitor's MAC (ThermoPro app, or `bluetoothctl scan on` on any Linux machine — look for `TP3xx` names). Then, for each monitor, add a block like this (repeat with a unique name/MAC per sensor):
+
+```yaml
+esphome:
+  name: thermopro-proxy
+esp32:
+  board: esp32dev
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+web_server:        # serves /sensor/<id> as JSON for the dashboard to poll
+  port: 80
+
+esp32_ble_tracker:
+  on_ble_advertise:
+    - mac_address: AB:CD:EF:01:23:45        # ← your monitor's MAC
+      then:
+        - lambda: |-
+            // ThermoPro packs the temperature's low byte into the BLE company
+            // id, which ESPHome exposes as md.uuid (not in md.data). The temp
+            // high byte is md.data[0], humidity is md.data[1].
+            for (auto md : x.get_manufacturer_datas()) {
+              if (md.data.size() < 2) continue;
+              uint16_t cid = md.uuid.get_uuid().uuid.uuid16;
+              int16_t t = ((cid >> 8) & 0xFF) | (md.data[0] << 8);
+              id(bedroom_temp).publish_state(t / 10.0);
+              id(bedroom_hum).publish_state(md.data[1]);
+            }
+
+sensor:
+  - platform: template
+    name: "Bedroom Temperature"      # entity name → /sensor/Bedroom%20Temperature
+    id: bedroom_temp
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+  - platform: template
+    name: "Bedroom Humidity"         # → /sensor/Bedroom%20Humidity
+    id: bedroom_hum
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+```
+
+The web server serves each sensor at `/sensor/<entity name>`, using the sensor's `name` verbatim with spaces URL-encoded as `%20` (`"Bedroom Temperature"` → `/sensor/Bedroom%20Temperature`). Use those URLs in `THERMOPRO_SENSORS`. Verify a sensor directly in a browser at `http://<esp32-ip>/sensor/Bedroom%20Temperature` before deploying. If the decoded values don't match the monitor's own display, adjust the byte offsets in the lambda.
+
+> **Note:** the decode follows the documented ThermoPro format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway (`TPTH`, covering TP350/357/358/359/393): full manufacturer data is `[0..1]` company id, `[1..2]` temperature `int16` little-endian ÷ 10, `[3]` humidity. Note ThermoPro overlaps the temperature's low byte with the 2-byte BLE company id — ESPHome strips that into `md.uuid`, so the lambda reconstructs the low byte from `md.uuid` and reads the high byte from `md.data[0]`, with humidity at `md.data[1]`. If your units report different values, verify a `/sensor/<entity name>` endpoint against the unit's own display and adjust from there.
 
 ### GitHub access
 
