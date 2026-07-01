@@ -7,7 +7,7 @@ import { getCurrentRate, getUpcomingRates, getGasRate, isGasConfigured } from '.
 import { getCurrentWeather, isWeatherConfigured } from './weather.js';
 import { getMyenergiStatus, isMyenergiConfigured } from './myenergi.js';
 import { getDecoStatus, isDecoConfigured, invalidateDecoSession, getDecoUrl } from './deco.js';
-import { getSnapshot, isCctvConfigured } from './cctv.js';
+import { getSnapshot, isCctvConfigured, setCctvBoost } from './cctv.js';
 import { isCalendarConfigured, getCalendarAuthUrl, exchangeCalendarCode, getCalendarEvents } from './calendar.js';
 import { isTapoConfigured, getTapoStatus, setTapoState } from './tapo.js';
 import { isThermoproConfigured, getThermoproStatus, getThermoproHistory } from './thermopro.js';
@@ -94,6 +94,18 @@ app.get('/api/cctv/snapshot/:channel', (req, res) => {
   res.set('Content-Type', 'image/jpeg');
   res.set('Cache-Control', 'no-store');
   res.send(data);
+});
+
+// Boost a channel's capture rate for the full-screen view; ":channel" is a
+// channel number, or "off" to return every channel to the base rate.
+app.post('/api/cctv/boost/:channel', (req, res) => {
+  if (!isCctvConfigured()) return res.status(404).end();
+  const raw = req.params.channel;
+  const channel = (raw === 'off' || raw === 'none') ? null : parseInt(raw, 10);
+  if (channel !== null && !Number.isInteger(channel)) {
+    return res.status(400).json({ status: 'error', message: 'channel must be a number or "off"' });
+  }
+  res.json({ status: 'ok', boosted: setCctvBoost(channel) });
 });
 
 app.get('/api/deco', async (_req, res) => {

@@ -661,6 +661,8 @@ setInterval(loadDeco, 10_000);
 
 let cctvFocusedChannel = null;
 let cctvFullscreenChannel = null;
+let cctvFullscreenTimer = null;
+const CCTV_FULLSCREEN_MS = 100;   // ~10fps polling for the boosted full-screen camera
 
 function setCctvImgSrc(img, ch) {
   img.onerror = () => { img.style.visibility = 'hidden'; };
@@ -675,11 +677,19 @@ function openCctvFullscreen(ch) {
   img.alt = `Camera ${ch}`;
   setCctvImgSrc(img, ch);
   overlay.hidden = false;
+
+  // Ask the server to capture this channel at a higher rate, and poll it fast.
+  fetch(`/api/cctv/boost/${ch}`, { method: 'POST' }).catch(() => {});
+  clearInterval(cctvFullscreenTimer);
+  cctvFullscreenTimer = setInterval(() => setCctvImgSrc(img, ch), CCTV_FULLSCREEN_MS);
 }
 
 function closeCctvFullscreen() {
+  clearInterval(cctvFullscreenTimer);
+  cctvFullscreenTimer = null;
   cctvFullscreenChannel = null;
   document.getElementById('cctv-fullscreen').hidden = true;
+  fetch('/api/cctv/boost/off', { method: 'POST' }).catch(() => {});
 }
 
 function renderCctvBody() {
@@ -775,9 +785,7 @@ function refreshCctvSnapshots() {
     if (!img) continue;
     setCctvImgSrc(img, ch);
   }
-  if (cctvFullscreenChannel !== null) {
-    setCctvImgSrc(document.getElementById('cctv-fullscreen-img'), cctvFullscreenChannel);
-  }
+  // The full-screen image is refreshed on its own faster timer while open.
 }
 
 document.getElementById('cctv-fullscreen-back').onclick = closeCctvFullscreen;
