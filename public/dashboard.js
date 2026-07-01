@@ -379,8 +379,16 @@ function renderElectricityGraph(data) {
   const SLOTS = 48, W = 480, BAR_H = 52;
   const slotW = W / SLOTS;
 
+  // Bars grow from a zero baseline: positive prices up, negative ("plunge")
+  // prices down. Keep the top of the axis at >= 20p so a quiet day doesn't fill
+  // the whole graph, and drop the baseline below zero only when prices do.
   const maxRate = rates.reduce((m, r) => Math.max(m, r.rate), 0);
-  const scale = Math.max(20, maxRate);
+  const minRate = rates.reduce((m, r) => Math.min(m, r.rate), 0);
+  const topValue = Math.max(20, maxRate);
+  const botValue = Math.min(0, minRate);
+  const span = topValue - botValue;
+  const yOf = v => ((topValue - v) / span) * BAR_H;
+  const zeroY = yOf(0);
 
   const firstSlot = new Date(rates[0].validFrom);
   const now = new Date();
@@ -396,11 +404,14 @@ function renderElectricityGraph(data) {
   tooltip.hidden = true;
 
   rates.forEach((slot, i) => {
-    const h = Math.max(1, (Math.max(0, slot.rate) / scale) * BAR_H);
     const { level } = getPriceLevel(slot.rate);
+    // Positive bars hang from the price down to the baseline; negative bars
+    // drop from the baseline down to the price.
+    const y = slot.rate >= 0 ? yOf(slot.rate) : zeroY;
+    const h = Math.max(1, Math.abs(yOf(slot.rate) - zeroY));
     const rect = document.createElementNS(NS, 'rect');
     rect.setAttribute('x', i * slotW);
-    rect.setAttribute('y', BAR_H - h);
+    rect.setAttribute('y', y);
     rect.setAttribute('width', slotW - 1);
     rect.setAttribute('height', h);
     rect.setAttribute('fill', PRICE_LEVEL_COLORS[level]);
@@ -420,6 +431,18 @@ function renderElectricityGraph(data) {
 
     svg.appendChild(rect);
   });
+
+  // A faint zero baseline, shown only when some prices are negative.
+  if (botValue < 0) {
+    const zeroLine = document.createElementNS(NS, 'line');
+    zeroLine.setAttribute('x1', 0);
+    zeroLine.setAttribute('x2', W);
+    zeroLine.setAttribute('y1', zeroY);
+    zeroLine.setAttribute('y2', zeroY);
+    zeroLine.setAttribute('stroke', 'rgba(255,255,255,0.25)');
+    zeroLine.setAttribute('stroke-width', '1');
+    svg.appendChild(zeroLine);
+  }
 
   const nowLine = document.createElementNS(NS, 'line');
   nowLine.setAttribute('x1', nowX);
