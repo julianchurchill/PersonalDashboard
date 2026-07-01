@@ -10,7 +10,7 @@ import { getDecoStatus, isDecoConfigured, invalidateDecoSession, getDecoUrl } fr
 import { getSnapshot, isCctvConfigured } from './cctv.js';
 import { isCalendarConfigured, getCalendarAuthUrl, exchangeCalendarCode, getCalendarEvents } from './calendar.js';
 import { isTapoConfigured, getTapoStatus, setTapoState } from './tapo.js';
-import { isThermoproConfigured, getThermoproStatus } from './thermopro.js';
+import { isThermoproConfigured, getThermoproStatus, getThermoproHistory } from './thermopro.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -139,6 +139,11 @@ app.get('/api/thermopro', async (_req, res) => {
   } catch (err) {
     res.status(503).json({ status: 'error', message: err.message });
   }
+});
+
+app.get('/api/thermopro/history/:name', (req, res) => {
+  if (!isThermoproConfigured()) return res.json({ status: 'unconfigured' });
+  res.json({ status: 'ok', name: req.params.name, points: getThermoproHistory(req.params.name) });
 });
 
 app.get('/api/calendar', async (_req, res) => {

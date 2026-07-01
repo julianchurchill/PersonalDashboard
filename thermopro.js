@@ -73,3 +73,45 @@ async function readSensor({ label, tempUrl, humUrl }) {
 export async function getThermoproStatus() {
   return Promise.all(parseSensors().map(readSensor));
 }
+
+// --- 24-hour history --------------------------------------------------------
+//
+// ESPHome only reports the current value, so to graph a sensor over time we
+// sample it here on a fixed interval and keep a rolling in-memory series per
+// sensor (keyed by its label). History is not persisted, so it resets on
+// container restart and fills in over the first 24 hours after a deploy.
+
+const SAMPLE_INTERVAL_MS = 5 * 60_000;        // one sample every 5 minutes
+const RETENTION_MS = 24 * 60 * 60_000;        // keep 24 hours
+
+const history = new Map();                     // name -> [{ t, tempC, humidity }]
+
+function recordSample(name, tempC, humidity) {
+  let series = history.get(name);
+  if (!series) { series = []; history.set(name, series); }
+  series.push({ t: Date.now(), tempC, humidity });
+  const cutoff = Date.now() - RETENTION_MS;
+  while (series.length && series[0].t < cutoff) series.shift();
+}
+
+async function sampleAll() {
+  const readings = await getThermoproStatus();
+  for (const r of readings) {
+    // Only record real readings; an offline sensor leaves a gap in its series.
+    if (r.tempC != null) recordSample(r.name, r.tempC, r.humidity);
+  }
+}
+
+async function runSamplerLoop() {
+  while (true) {
+    try { await sampleAll(); } catch { /* keep sampling on the next tick */ }
+    await new Promise(r => setTimeout(r, SAMPLE_INTERVAL_MS));
+  }
+}
+
+export function getThermoproHistory(name) {
+  const cutoff = Date.now() - RETENTION_MS;
+  return (history.get(name) ?? []).filter(p => p.t >= cutoff);
+}
+
+if (isThermoproConfigured()) runSamplerLoop();

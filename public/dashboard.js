@@ -842,9 +842,18 @@ async function loadTapo() {
 loadTapo();
 setInterval(loadTapo, 60_000);
 
+let thermoproFocused = null;   // name of the sensor zoomed into a graph, or null
+let thermoproDevices = [];     // latest device list, for re-rendering on focus toggle
+
+function thermoproDeviceByName(name) {
+  return thermoproDevices.find(d => d.name === name) ?? null;
+}
+
 function makeThermoproRow(d) {
   const row = document.createElement('div');
   row.className = 'thermopro-row';
+  // Click a row to zoom into its 24-hour graph (see renderThermoproView).
+  row.onclick = () => { thermoproFocused = d.name; renderThermoproView(); };
 
   const icon = document.createElement('span');
   icon.className = 'thermopro-icon';
@@ -885,37 +894,151 @@ function makeThermoproRow(d) {
   return row;
 }
 
+// Draw a stacked dual-band sparkline (temperature above, humidity below) over
+// a fixed 24-hour window. Each band is auto-scaled to its own min/max.
+function buildThermoproChart(points) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const W = 480, H = 96, MID = H / 2;
+  const windowMs = 24 * 60 * 60 * 1000;
+  const start = Date.now() - windowMs;
+  const xOf = t => ((t - start) / windowMs) * W;
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  const divider = document.createElementNS(NS, 'line');
+  divider.setAttribute('x1', 0); divider.setAttribute('x2', W);
+  divider.setAttribute('y1', MID); divider.setAttribute('y2', MID);
+  divider.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+  svg.appendChild(divider);
+
+  function addLine(accessor, color, yTop, yBot) {
+    const vals = points.map(accessor).filter(v => v != null);
+    if (vals.length < 2) return null;
+    let min = Math.min(...vals), max = Math.max(...vals);
+    if (min === max) { min -= 1; max += 1; }
+    const yOf = v => yBot - ((v - min) / (max - min)) * (yBot - yTop);
+    let d = '', started = false;
+    for (const p of points) {
+      const v = accessor(p);
+      if (v == null) { started = false; continue; }   // break the line across gaps
+      d += (started ? 'L' : 'M') + xOf(p.t).toFixed(1) + ' ' + yOf(v).toFixed(1) + ' ';
+      started = true;
+    }
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', d.trim());
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.appendChild(path);
+    return { min, max };
+  }
+
+  const tempRange = addLine(p => p.tempC, '#e07b4a', 8, MID - 6);
+  const humRange  = addLine(p => p.humidity, '#6c8ebf', MID + 6, H - 8);
+
+  const legend = document.createElement('div');
+  legend.className = 'thermopro-graph-legend';
+  if (tempRange) {
+    const t = document.createElement('span');
+    t.className = 'thermopro-legend-temp';
+    t.textContent = `🌡️ ${tempRange.min.toFixed(1)}–${tempRange.max.toFixed(1)}°C`;
+    legend.append(t);
+  }
+  if (humRange) {
+    const h = document.createElement('span');
+    h.className = 'thermopro-legend-hum';
+    h.textContent = `💧 ${humRange.min}–${humRange.max}%`;
+    legend.append(h);
+  }
+
+  const labels = document.createElement('div');
+  labels.className = 'thermopro-graph-labels';
+  for (const txt of ['24h ago', '12h', 'now']) {
+    const s = document.createElement('span');
+    s.textContent = txt;
+    labels.append(s);
+  }
+
+  const frag = document.createDocumentFragment();
+  frag.append(svg, legend, labels);
+  return frag;
+}
+
+async function renderThermoproGraph(name, body) {
+  let points = [];
+  try {
+    const res = await fetch(`/api/thermopro/history/${encodeURIComponent(name)}`);
+    points = (await res.json()).points ?? [];
+  } catch { /* fall through to the empty-state message */ }
+
+  // The 30-second refresh (or a back click) may have moved on while we awaited.
+  if (thermoproFocused !== name) return;
+
+  const container = document.createElement('div');
+  container.className = 'thermopro-graph';
+
+  const d = thermoproDeviceByName(name);
+  const current = d && d.reachable
+    ? `${d.tempC.toFixed(1)}°C · ${d.humidity != null ? d.humidity + '%' : '—'}`
+    : '—';
+  const title = document.createElement('div');
+  title.className = 'thermopro-graph-title';
+  title.textContent = `${name} · ${current}`;
+  container.append(title);
+
+  if (points.length < 2) {
+    const msg = document.createElement('div');
+    msg.className = 'thermopro-graph-empty';
+    msg.textContent = 'Collecting data — the graph appears once a few readings are in.';
+    container.append(msg);
+  } else {
+    container.append(buildThermoproChart(points));
+  }
+
+  body.replaceChildren(container);
+}
+
+function renderThermoproView() {
+  const body  = document.getElementById('thermopro-body');
+  const badge = document.getElementById('thermopro-badge');
+
+  if (thermoproFocused && thermoproDeviceByName(thermoproFocused)) {
+    badge.textContent = '← Back';
+    badge.className = 'widget-badge thermopro-badge-back';
+    badge.onclick = () => { thermoproFocused = null; renderThermoproView(); };
+    renderThermoproGraph(thermoproFocused, body);
+    return;
+  }
+
+  thermoproFocused = null;
+  badge.onclick = null;
+  const reachable = thermoproDevices.filter(d => d.reachable).length;
+  badge.textContent = `${reachable}/${thermoproDevices.length}`;
+  badge.className = 'widget-badge' + (reachable ? ' active' : '');
+  body.replaceChildren(...thermoproDevices.map(makeThermoproRow));
+}
+
 function renderThermopro(data) {
   const body  = document.getElementById('thermopro-body');
   const badge = document.getElementById('thermopro-badge');
 
-  if (data.status === 'unconfigured') {
-    badge.textContent = '';
+  if (data.status === 'unconfigured' || data.status === 'error' || !(data.devices ?? []).length) {
+    thermoproFocused = null;
+    badge.textContent = data.status === 'error' ? 'Error' : '';
     badge.className = 'widget-badge';
-    setBodyText(body, 'widget-error', 'THERMOPRO_SENSORS not set.');
+    badge.onclick = null;
+    const msg = data.status === 'unconfigured' ? 'THERMOPRO_SENSORS not set.'
+              : data.status === 'error'        ? (data.message ?? 'Unknown error')
+              :                                   'No sensors configured.';
+    setBodyText(body, data.status === 'error' ? 'widget-error' : data.status === 'unconfigured' ? 'widget-error' : 'widget-loading', msg);
     return;
   }
 
-  if (data.status === 'error') {
-    badge.textContent = 'Error';
-    badge.className = 'widget-badge';
-    setBodyText(body, 'widget-error', data.message ?? 'Unknown error');
-    return;
-  }
-
-  const devices = data.devices ?? [];
-  if (!devices.length) {
-    badge.textContent = '';
-    badge.className = 'widget-badge';
-    setBodyText(body, 'widget-loading', 'No sensors configured.');
-    return;
-  }
-
-  const reachable = devices.filter(d => d.reachable).length;
-  badge.textContent = `${reachable}/${devices.length}`;
-  badge.className = 'widget-badge' + (reachable ? ' active' : '');
-
-  body.replaceChildren(...devices.map(makeThermoproRow));
+  thermoproDevices = data.devices;
+  renderThermoproView();
 }
 
 async function loadThermopro() {
