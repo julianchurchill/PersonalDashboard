@@ -51,7 +51,7 @@ npm run dev    # restarts automatically when server.js changes
 - CCTV widget (4-channel live snapshots from DVR via RTSP)
 - Google Calendar header display (next 3 events from the family calendar, with name and date/time)
 - Tapo smart plugs &amp; lights widget (shows on/off state, toggle each device on or off)
-- Indoor Climate widget (temperature &amp; humidity from ThermoPro TP357/TP358/TP359 monitors via an ESP32 BLE proxy)
+- Climate widget (temperature &amp; humidity from ThermoPro TP357/TP358/TP359 monitors via an ESP32 BLE proxy)
 
 ## Dev Containers
 
@@ -230,7 +230,7 @@ To check which protocol a device is using, query its local discovery service ove
 
 **Future TPAP support:** TPAP is a proprietary, undocumented handshake (PAKE + device/node certificates), so it can't be implemented reliably by reverse-engineering. If TP-Link publishes a specification — or if support lands in python-kasa / a maintained Node library — the widget could be updated to speak TPAP directly, removing the need for the Third-Party Compatibility workaround. Until then, keep that setting enabled.
 
-### Indoor Climate widget (ThermoPro Bluetooth monitors)
+### Climate widget (ThermoPro Bluetooth monitors)
 
 Shows the current temperature and humidity from one or more **ThermoPro TP357 / TP358 / TP359** Bluetooth monitors, refreshed every 30 seconds.
 
