@@ -495,6 +495,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .cctv-fullscreen[hidden] {
@@ -505,6 +506,9 @@ main {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  touch-action: none;         /* we handle pinch/drag ourselves */
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .cctv-fullscreen-back {

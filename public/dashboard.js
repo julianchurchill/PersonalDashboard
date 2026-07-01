@@ -675,6 +675,7 @@ function openCctvFullscreen(ch) {
   const overlay = document.getElementById('cctv-fullscreen');
   const img = document.getElementById('cctv-fullscreen-img');
   img.alt = `Camera ${ch}`;
+  cctvResetZoom();
   setCctvImgSrc(img, ch);
   overlay.hidden = false;
 
@@ -690,6 +691,96 @@ function closeCctvFullscreen() {
   cctvFullscreenChannel = null;
   document.getElementById('cctv-fullscreen').hidden = true;
   fetch('/api/cctv/boost/off', { method: 'POST' }).catch(() => {});
+}
+
+// --- Digital zoom & pan for the full-screen camera (client-side, no DVR API) ---
+let cctvZoom = 1, cctvPanX = 0, cctvPanY = 0;
+const CCTV_MAX_ZOOM = 6;
+const cctvPointers = new Map();   // pointerId -> { x, y }
+let cctvPinchStart = null;        // { dist, zoom } while two fingers are down
+
+function cctvApplyTransform() {
+  const img = document.getElementById('cctv-fullscreen-img');
+  img.style.transform = `translate(${cctvPanX}px, ${cctvPanY}px) scale(${cctvZoom})`;
+  img.style.cursor = cctvZoom > 1 ? 'grab' : 'default';
+}
+
+function cctvResetZoom() {
+  cctvZoom = 1; cctvPanX = 0; cctvPanY = 0;
+  cctvApplyTransform();
+}
+
+// Keep the image from being panned past its edges (approximated to the overlay).
+function cctvClampPan() {
+  const r = document.getElementById('cctv-fullscreen').getBoundingClientRect();
+  const maxX = Math.max(0, (r.width  * (cctvZoom - 1)) / 2);
+  const maxY = Math.max(0, (r.height * (cctvZoom - 1)) / 2);
+  cctvPanX = Math.max(-maxX, Math.min(maxX, cctvPanX));
+  cctvPanY = Math.max(-maxY, Math.min(maxY, cctvPanY));
+}
+
+// Zoom by `factor` about a screen point, keeping that point fixed. The image is
+// centred in the (full-viewport) overlay, so its untransformed centre is the
+// overlay centre and transform-origin stays at the default centre.
+function cctvZoomAt(clientX, clientY, factor) {
+  const r = document.getElementById('cctv-fullscreen').getBoundingClientRect();
+  const relX = clientX - (r.left + r.width / 2);
+  const relY = clientY - (r.top + r.height / 2);
+  const newZoom = Math.max(1, Math.min(CCTV_MAX_ZOOM, cctvZoom * factor));
+  cctvPanX = relX - (newZoom / cctvZoom) * (relX - cctvPanX);
+  cctvPanY = relY - (newZoom / cctvZoom) * (relY - cctvPanY);
+  cctvZoom = newZoom;
+  if (cctvZoom === 1) { cctvPanX = 0; cctvPanY = 0; }
+  cctvClampPan();
+  cctvApplyTransform();
+}
+
+function initCctvZoomPan() {
+  const img = document.getElementById('cctv-fullscreen-img');
+
+  img.addEventListener('wheel', e => {
+    e.preventDefault();
+    cctvZoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+  }, { passive: false });
+
+  img.addEventListener('dblclick', cctvResetZoom);
+
+  img.addEventListener('pointerdown', e => {
+    img.setPointerCapture(e.pointerId);
+    cctvPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (cctvPointers.size === 2) {
+      const [a, b] = [...cctvPointers.values()];
+      cctvPinchStart = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: cctvZoom };
+    }
+    if (cctvZoom > 1) img.style.cursor = 'grabbing';
+  });
+
+  img.addEventListener('pointermove', e => {
+    const prev = cctvPointers.get(e.pointerId);
+    if (!prev) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    cctvPointers.set(e.pointerId, cur);
+
+    if (cctvPointers.size === 2 && cctvPinchStart) {
+      const [a, b] = [...cctvPointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const target = Math.max(1, Math.min(CCTV_MAX_ZOOM, cctvPinchStart.zoom * (dist / cctvPinchStart.dist)));
+      cctvZoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, target / cctvZoom);
+    } else if (cctvPointers.size === 1 && cctvZoom > 1) {
+      cctvPanX += cur.x - prev.x;
+      cctvPanY += cur.y - prev.y;
+      cctvClampPan();
+      cctvApplyTransform();
+    }
+  });
+
+  const endPointer = e => {
+    cctvPointers.delete(e.pointerId);
+    if (cctvPointers.size < 2) cctvPinchStart = null;
+    if (cctvZoom > 1) img.style.cursor = 'grab';
+  };
+  img.addEventListener('pointerup', endPointer);
+  img.addEventListener('pointercancel', endPointer);
 }
 
 function renderCctvBody() {
@@ -792,6 +883,7 @@ document.getElementById('cctv-fullscreen-back').onclick = closeCctvFullscreen;
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && cctvFullscreenChannel !== null) closeCctvFullscreen();
 });
+initCctvZoomPan();
 
 loadCctv();
 setInterval(refreshCctvSnapshots, 1_000);
