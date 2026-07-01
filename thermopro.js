@@ -47,6 +47,9 @@ async function fetchValue(url) {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
     const data = await res.json();
+    // ESPHome reports an unknown/unavailable sensor as {"value":null,"state":"NA"};
+    // guard against it explicitly, since Number(null) is 0 (a finite number).
+    if (data.value == null) return null;
     const value = Number(data.value);
     return Number.isFinite(value) ? value : null;
   } catch {
