@@ -569,23 +569,19 @@ function makeDecoSpeedEl(dlKbps, ulKbps) {
 }
 
 function renderDeco(data) {
-  const body   = document.getElementById('deco-body');
-  const badge  = document.getElementById('deco-badge');
-  const widget = document.getElementById('deco-widget');
+  const body  = document.getElementById('deco-body');
+  const badge = document.getElementById('deco-badge');
+  const link  = document.getElementById('deco-link');
 
-  widget.classList.remove('widget-clickable');
-  widget.onclick = null;
+  // Small header link to the Deco admin page (replaces the whole-tile click).
+  if (data.url) { link.href = data.url; link.hidden = false; }
+  else { link.removeAttribute('href'); link.hidden = true; }
 
   if (data.status === 'unconfigured') {
     badge.textContent = '';
     badge.className = 'widget-badge';
     setBodyText(body, 'widget-error', 'DECO_IP / DECO_PASSWORD not set.');
     return;
-  }
-
-  if (data.url) {
-    widget.classList.add('widget-clickable');
-    widget.onclick = () => window.open(data.url, '_blank');
   }
 
   if (data.status === 'error') {
