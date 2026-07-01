@@ -1,7 +1,8 @@
 import { spawn } from 'child_process';
 
 const CHANNELS = 4;
-const FRAME_FPS = 1;                    // frames per second pulled from each stream
+const BASE_FPS = 1;                     // frames/sec for a channel shown in the grid/focus
+const BOOST_FPS = 10;                   // frames/sec for the single full-screen ("super zoom") channel
 const RESTART_MS = 2_000;               // pause before reconnecting a dropped stream
 const MAX_BUFFER = 4 * 1024 * 1024;     // drop the accumulator if a frame never completes
 
@@ -12,7 +13,9 @@ export function isCctvConfigured() {
   return !!(process.env.CCTV_IP && process.env.CCTV_PASSWORD);
 }
 
-const cache = new Map(); // channel -> Buffer (latest JPEG)
+const cache = new Map();    // channel -> Buffer (latest JPEG)
+const streams = new Map();  // channel -> { proc } (current ffmpeg for the channel)
+let boostedChannel = null;  // the full-screen channel, pulled at BOOST_FPS
 
 function rtspUrl(channel) {
   const { CCTV_IP: ip, CCTV_PASSWORD: pwd } = process.env;
@@ -25,11 +28,16 @@ export function getSnapshot(channel) {
   return cache.get(channel) ?? null;
 }
 
+function fpsFor(channel) {
+  return channel === boostedChannel ? BOOST_FPS : BASE_FPS;
+}
+
 // Keep one long-lived ffmpeg per channel with the RTSP connection open, emitting
-// ~FRAME_FPS JPEGs a second. Spawning a fresh ffmpeg per snapshot instead paid a
-// full RTSP handshake + keyframe wait every time, and doing that for four
-// channels at once made the DVR stall for 10s+ — so the cache only refreshed
-// every 7-15s however fast the browser polled. A steady stream avoids both.
+// JPEGs at the channel's current fps. Spawning a fresh ffmpeg per snapshot
+// instead paid a full RTSP handshake + keyframe wait every time, and doing that
+// for four channels at once made the DVR stall for 10s+. A steady stream avoids
+// both. Decoding runs continuously regardless of fps, so a higher fps only costs
+// extra JPEG encoding — cheap enough to boost the one full-screen channel.
 //
 // ffmpeg writes the frames back-to-back on stdout, so we split them on the JPEG
 // SOI/EOI markers and keep only the most recent per channel. If ffmpeg exits
@@ -39,12 +47,15 @@ function streamChannel(channel) {
     '-loglevel', 'error',
     '-rtsp_transport', 'tcp',
     '-i', rtspUrl(channel),
-    '-vf', `fps=${FRAME_FPS}`,
+    '-vf', `fps=${fpsFor(channel)}`,
     '-f', 'image2pipe',
     '-vcodec', 'mjpeg',
     '-q:v', '5',
     'pipe:1',
   ], { stdio: ['ignore', 'pipe', 'ignore'] });
+
+  const entry = { proc };
+  streams.set(channel, entry);
 
   let buf = Buffer.alloc(0);
   proc.stdout.on('data', chunk => {
@@ -66,16 +77,40 @@ function streamChannel(channel) {
     }
   });
 
-  // 'error' (spawn failed) and 'close' (process exited) can both fire; only
-  // schedule one reconnect.
-  let reconnected = false;
-  const reconnect = () => {
-    if (reconnected) return;
-    reconnected = true;
-    setTimeout(() => streamChannel(channel), RESTART_MS);
+  // 'error' (spawn failed) and 'close' (process exited) can both fire; only act
+  // once, and only reconnect if this is still the channel's active stream — a
+  // boost change deliberately replaces it and spawns its own replacement.
+  let handled = false;
+  const onExit = () => {
+    if (handled) return;
+    handled = true;
+    if (streams.get(channel) === entry) {
+      setTimeout(() => streamChannel(channel), RESTART_MS);
+    }
   };
-  proc.on('error', reconnect);
-  proc.on('close', reconnect);
+  proc.on('error', onExit);
+  proc.on('close', onExit);
+}
+
+// Boost a single channel to BOOST_FPS (for the full-screen view) and return the
+// others to BASE_FPS. Pass null to clear. Only the channels whose fps actually
+// changes are restarted.
+export function setCctvBoost(channel) {
+  const next = Number.isInteger(channel) && channel >= 1 && channel <= CHANNELS ? channel : null;
+  if (next === boostedChannel) return boostedChannel;
+
+  const affected = [boostedChannel, next].filter(c => c != null);
+  boostedChannel = next;
+
+  for (const ch of affected) {
+    const entry = streams.get(ch);
+    if (entry) {
+      streams.delete(ch);          // detach so its onExit won't auto-respawn
+      entry.proc.kill('SIGKILL');
+    }
+    streamChannel(ch);             // respawn immediately at the new fps
+  }
+  return boostedChannel;
 }
 
 if (isCctvConfigured()) {
