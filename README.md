@@ -270,13 +270,15 @@ esp32_ble_tracker:
     - mac_address: AB:CD:EF:01:23:45        # ← your monitor's MAC
       then:
         - lambda: |-
-            // ESPHome puts the 2-byte company id in .uuid, so .data starts at
-            // the temperature: [0..1] temp int16 LE / 10, [2] humidity %.
-            for (auto data : x.get_manufacturer_datas()) {
-              if (data.data.size() < 3) continue;
-              int16_t t = data.data[0] | (data.data[1] << 8);
+            // ThermoPro packs the temperature's low byte into the BLE company
+            // id, which ESPHome exposes as md.uuid (not in md.data). The temp
+            // high byte is md.data[0], humidity is md.data[1].
+            for (auto md : x.get_manufacturer_datas()) {
+              if (md.data.size() < 2) continue;
+              uint16_t cid = md.uuid.get_uuid().uuid.uuid16;
+              int16_t t = ((cid >> 8) & 0xFF) | (md.data[0] << 8);
               id(bedroom_temp).publish_state(t / 10.0);
-              id(bedroom_hum).publish_state(data.data[2]);
+              id(bedroom_hum).publish_state(md.data[1]);
             }
 
 sensor:
@@ -294,7 +296,7 @@ sensor:
 
 ESPHome turns each sensor `name` into the URL's `<id>` by lower-casing and replacing spaces with underscores (`"Bedroom Temperature"` → `bedroom_temperature`). Use those URLs in `THERMOPRO_SENSORS`. Verify a sensor directly in a browser at `http://<esp32-ip>/sensor/bedroom_temperature` before deploying. If the decoded values don't match the monitor's own display, adjust the byte offsets in the lambda.
 
-> **Note:** the BLE advertisement decode (temperature `int16` little-endian ÷ 10, humidity as a byte) follows the documented TP357/TP359 format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway. If your units report different values, adjust the byte offsets in the lambda. (The offsets above are relative to ESPHome's `.data`, which already excludes the 2-byte company id — raw decoders that include it use offsets 2 higher.)
+> **Note:** the decode follows the documented ThermoPro format used by [Theengs](https://github.com/theengs/decoder) / OpenMQTTGateway (`TPTH`, covering TP350/357/358/359/393): full manufacturer data is `[0..1]` company id, `[1..2]` temperature `int16` little-endian ÷ 10, `[3]` humidity. Note ThermoPro overlaps the temperature's low byte with the 2-byte BLE company id — ESPHome strips that into `md.uuid`, so the lambda reconstructs the low byte from `md.uuid` and reads the high byte from `md.data[0]`, with humidity at `md.data[1]`. If your units report different values, verify a `/sensor/<id>` endpoint against the unit's own display and adjust from there.
 
 ### GitHub access
 
