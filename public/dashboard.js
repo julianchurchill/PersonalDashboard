@@ -756,7 +756,7 @@ function refreshCctvSnapshots() {
 }
 
 loadCctv();
-setInterval(refreshCctvSnapshots, 15_000);
+setInterval(refreshCctvSnapshots, 1_000);
 
 function tapoIcon(type) {
   if (type === 'light') return '💡';

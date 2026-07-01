@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 
 const CHANNELS = 4;
-const REFRESH_MS = 15_000;
+const REFRESH_MS = 1_000;   // minimum gap between capture cycles; a slow ffmpeg capture may extend it
 const TIMEOUT_MS = 12_000;
 
 export function isCctvConfigured() {
