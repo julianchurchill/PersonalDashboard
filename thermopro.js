@@ -14,6 +14,10 @@
 //   Ollie=http://192.168.0.30/sensor/ollie_temperature;http://192.168.0.30/sensor/ollie_humidity
 // The humidity URL is optional (omit the ";..." for a temperature-only sensor).
 
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
 const OP_TIMEOUT_MS = 4000;              // cap each HTTP read so one slow ESP32 can't stall the widget
 
 function parseSensors() {
@@ -72,4 +76,70 @@ async function readSensor({ label, tempUrl, humUrl }) {
 
 export async function getThermoproStatus() {
   return Promise.all(parseSensors().map(readSensor));
+}
+
+// --- 24-hour history --------------------------------------------------------
+//
+// ESPHome only reports the current value, so to graph a sensor over time we
+// sample it here on a fixed interval and keep a rolling in-memory series per
+// sensor (keyed by its label). The series is persisted to the data volume so
+// it survives container restarts and redeploys.
+
+const SAMPLE_INTERVAL_MS = 5 * 60_000;        // one sample every 5 minutes
+const RETENTION_MS = 24 * 60 * 60_000;        // keep 24 hours
+
+const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), 'data');
+const HISTORY_FILE = join(DATA_DIR, 'thermopro-history.json');
+
+const history = new Map();                     // name -> [{ t, tempC, humidity }]
+
+function loadHistory() {
+  try {
+    const raw = JSON.parse(readFileSync(HISTORY_FILE, 'utf8'));
+    const cutoff = Date.now() - RETENTION_MS;
+    for (const [name, series] of Object.entries(raw)) {
+      if (Array.isArray(series)) history.set(name, series.filter(p => p && p.t >= cutoff));
+    }
+  } catch { /* no or unreadable history file — start empty */ }
+}
+
+function saveHistory() {
+  try {
+    mkdirSync(DATA_DIR, { recursive: true });
+    writeFileSync(HISTORY_FILE, JSON.stringify(Object.fromEntries(history)));
+  } catch { /* best-effort — a failed write just means we re-sample after restart */ }
+}
+
+function recordSample(name, tempC, humidity) {
+  let series = history.get(name);
+  if (!series) { series = []; history.set(name, series); }
+  series.push({ t: Date.now(), tempC, humidity });
+  const cutoff = Date.now() - RETENTION_MS;
+  while (series.length && series[0].t < cutoff) series.shift();
+}
+
+async function sampleAll() {
+  const readings = await getThermoproStatus();
+  for (const r of readings) {
+    // Only record real readings; an offline sensor leaves a gap in its series.
+    if (r.tempC != null) recordSample(r.name, r.tempC, r.humidity);
+  }
+  saveHistory();
+}
+
+async function runSamplerLoop() {
+  while (true) {
+    try { await sampleAll(); } catch { /* keep sampling on the next tick */ }
+    await new Promise(r => setTimeout(r, SAMPLE_INTERVAL_MS));
+  }
+}
+
+export function getThermoproHistory(name) {
+  const cutoff = Date.now() - RETENTION_MS;
+  return (history.get(name) ?? []).filter(p => p.t >= cutoff);
+}
+
+if (isThermoproConfigured()) {
+  loadHistory();
+  runSamplerLoop();
 }

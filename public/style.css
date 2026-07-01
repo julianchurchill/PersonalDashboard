@@ -575,6 +575,11 @@ footer {
   align-items: center;
   gap: 0.6rem;
   padding: 0.4rem 0;
+  cursor: pointer;
+}
+
+.thermopro-row:hover .thermopro-name {
+  color: var(--accent);
 }
 
 .thermopro-row + .thermopro-row {
@@ -618,4 +623,55 @@ footer {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-secondary);
+}
+
+/* --- Climate graph (row zoom) --- */
+
+.widget-badge.thermopro-badge-back {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.widget-badge.thermopro-badge-back:hover {
+  background: var(--accent);
+  color: var(--text-primary);
+}
+
+.thermopro-graph-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 0.5rem;
+}
+
+.thermopro-graph svg {
+  display: block;
+  width: 100%;
+  height: 96px;
+}
+
+.thermopro-graph-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.35rem;
+}
+
+.thermopro-legend-temp { color: #e07b4a; }
+.thermopro-legend-hum  { color: #6c8ebf; }
+
+.thermopro-graph-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.thermopro-graph-empty {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.6rem 0;
 }

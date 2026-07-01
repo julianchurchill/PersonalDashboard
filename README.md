@@ -73,7 +73,7 @@ The Resideo widget uses the [Honeywell Home API](https://developer.honeywellhome
    RESIDEO_CLIENT_SECRET=your_client_secret
    ```
 
-3. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in a Docker volume (`resideo-data`) so they survive container restarts.
+3. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in a Docker volume (`home-dashboard-data`) so they survive container restarts.
 4. Open the dashboard at `http://localhost:3000`, click the Resideo widget ("Click to authorise"), and log in with your Resideo account to approve access.
 
 After step 4 the widget will populate automatically and refresh every 60 seconds.
@@ -184,7 +184,7 @@ Shows the next 3 upcoming events from your family calendar in the header (event 
    GOOGLE_CLIENT_SECRET=your_client_secret
    ```
 
-4. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in the same Docker volume (`resideo-data`) as the Resideo tokens, so they survive container restarts.
+4. Deploy the dashboard (`npm run docker:deploy`) — tokens are stored in the same Docker volume (`home-dashboard-data`) as the Resideo tokens, so they survive container restarts.
 5. Open the dashboard at `http://localhost:3000`, click **📅 Connect calendar** in the header, and log in with your Google account to approve read-only calendar access.
 
 By default the dashboard picks the calendar whose name contains "family" (falling back to your primary calendar). To target a specific calendar, set its ID explicitly:
