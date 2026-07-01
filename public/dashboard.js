@@ -660,6 +660,27 @@ loadDeco();
 setInterval(loadDeco, 10_000);
 
 let cctvFocusedChannel = null;
+let cctvFullscreenChannel = null;
+
+function setCctvImgSrc(img, ch) {
+  img.onerror = () => { img.style.visibility = 'hidden'; };
+  img.onload  = () => { img.style.visibility = ''; };
+  img.src = `/api/cctv/snapshot/${ch}?t=${Date.now()}`;
+}
+
+function openCctvFullscreen(ch) {
+  cctvFullscreenChannel = ch;
+  const overlay = document.getElementById('cctv-fullscreen');
+  const img = document.getElementById('cctv-fullscreen-img');
+  img.alt = `Camera ${ch}`;
+  setCctvImgSrc(img, ch);
+  overlay.hidden = false;
+}
+
+function closeCctvFullscreen() {
+  cctvFullscreenChannel = null;
+  document.getElementById('cctv-fullscreen').hidden = true;
+}
 
 function renderCctvBody() {
   const body  = document.getElementById('cctv-body');
@@ -673,6 +694,9 @@ function renderCctvBody() {
     const cam = document.createElement('div');
     cam.className = 'cctv-camera';
     cam.id = `cctv-cam-${cctvFocusedChannel}`;
+    // Already zoomed into the tile — a click now goes full-screen.
+    cam.style.cursor = 'zoom-in';
+    cam.onclick = () => openCctvFullscreen(cctvFocusedChannel);
 
     const img = document.createElement('img');
     img.className = 'cctv-img';
@@ -749,11 +773,17 @@ function refreshCctvSnapshots() {
   for (let ch = 1; ch <= 4; ch++) {
     const img = document.querySelector(`#cctv-cam-${ch} .cctv-img`);
     if (!img) continue;
-    img.onerror = () => { img.style.visibility = 'hidden'; };
-    img.onload  = () => { img.style.visibility = ''; };
-    img.src = `/api/cctv/snapshot/${ch}?t=${Date.now()}`;
+    setCctvImgSrc(img, ch);
+  }
+  if (cctvFullscreenChannel !== null) {
+    setCctvImgSrc(document.getElementById('cctv-fullscreen-img'), cctvFullscreenChannel);
   }
 }
+
+document.getElementById('cctv-fullscreen-back').onclick = closeCctvFullscreen;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && cctvFullscreenChannel !== null) closeCctvFullscreen();
+});
 
 loadCctv();
 setInterval(refreshCctvSnapshots, 1_000);
